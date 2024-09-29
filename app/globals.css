@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.dynamic-color {
+  @apply p-4 rounded-lg shadow-md hover:shadow-lg cursor-pointer transition-all;
+}
+
+.bg-alkali-metal {
+  @apply bg-yellow-300 text-yellow-900;
+}
+
+.bg-alkaline-earth-metal {
+  @apply bg-green-300 text-green-900;
+}
+
+.bg-transition-metal {
+  @apply bg-blue-300 text-blue-900;
+}
+
+.bg-post-transition-metal {
+  @apply bg-orange-300 text-orange-900;
+}
+
+.bg-metalloid {
+  @apply bg-purple-300 text-purple-900;
+}
+
+.bg-nonmetal {
+  @apply bg-pink-300 text-pink-900;
+}
+
+.bg-halogen {
+  @apply bg-red-300 text-red-900;
+}
+
+.bg-noble-gas {
+  @apply bg-indigo-300 text-indigo-900;
+}
+
+.bg-lanthanide {
+  @apply bg-teal-300 text-teal-900;
+}
+
+.bg-actinide {
+  @apply bg-cyan-300 text-cyan-900;
+}
+
+.bg-default {
+  @apply bg-gray-200 text-gray-600;
+}
