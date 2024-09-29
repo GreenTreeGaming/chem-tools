@@ -1,3 +1,22 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "@next/next/no-img-element": "off", // Disable the warning for <img> elements
+    "@typescript-eslint/no-unused-vars": "warn", // Change to 'warn' to prevent errors for unused variables
+    "react/react-in-jsx-scope": "off" // If you're using React 17+ you can also turn off this rule
+  },
+  "env": {
+    "browser": true,
+    "es6": true,
+    "node": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module"
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  }
 }
