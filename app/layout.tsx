@@ -1,3 +1,5 @@
+// app/layout.tsx (or wherever your RootLayout is defined)
+
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import './globals.css'
@@ -7,6 +9,7 @@ const geistSans = localFont({
   variable: "--font-geist-sans",
   weight: "100 900",
 });
+
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
@@ -26,9 +29,22 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
       >
         {children}
+        <footer className="bg-gray-800 text-white text-center py-4">
+          <p>
+            Made by{' '}
+            <a
+              href="https://yourwebsite.com" // Replace with your actual website link
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-blue-400"
+            >
+              Sarvajith Karun
+            </a>
+          </p>
+        </footer>
       </body>
     </html>
   );
