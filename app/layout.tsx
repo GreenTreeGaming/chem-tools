@@ -36,7 +36,7 @@ export default function RootLayout({
           <p>
             Made by{' '}
             <a
-              href="https://yourwebsite.com" // Replace with your actual website link
+              href="https://sarvajithkarun.com" // Replace with your actual website link
               target="_blank"
               rel="noopener noreferrer"
               className="underline hover:text-blue-400"

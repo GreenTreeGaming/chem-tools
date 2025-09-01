@@ -1,209 +1,240 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation"; // Import useRouter
-import axios from "axios";
-import { elements } from "../../../utils/elementsData"; // Adjust the path as necessary
-import { Element } from "../../../types/element"; // Ensure the correct path
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { elements } from "../../../utils/elementsData"; // adjust if needed
+import type { Element } from "../../../types/element";
 import { facts } from "../../../utils/elementsFacts";
 
-const categoryColors: { [key: string]: string } = {
-  "alkali metal": "bg-yellow-300 text-yellow-900",
-  "alkaline earth metal": "bg-green-300 text-green-900",
-  "transition metal": "bg-blue-300 text-blue-900",
-  "post-transition metal": "bg-orange-300 text-orange-900",
-  "metalloid": "bg-purple-300 text-purple-900",
-  "nonmetal": "bg-pink-300 text-pink-900",
-  "halogen": "bg-red-300 text-red-900",
-  "noble gas": "bg-indigo-300 text-indigo-900",
-  "lanthanide": "bg-teal-300 text-teal-900",
-  "actinide": "bg-cyan-300 text-cyan-900",
+// -----------------------------------------------------------------------------
+// Category styling (kept local to avoid coupling; feel free to centralize)
+// Matches the lighter aesthetic used in the table (badge + ring)
+// -----------------------------------------------------------------------------
+const CATEGORY_META: Record<string, { label: string; bg: string; text: string; ring: string; surface: string }> = {
+  "alkali metal": { label: "Alkali Metal", bg: "bg-yellow-100", text: "text-yellow-900", ring: "ring-yellow-200", surface: "bg-yellow-50" },
+  "alkaline earth metal": { label: "Alkaline Earth Metal", bg: "bg-green-100", text: "text-green-900", ring: "ring-green-200", surface: "bg-green-50" },
+  "transition metal": { label: "Transition Metal", bg: "bg-blue-100", text: "text-blue-900", ring: "ring-blue-200", surface: "bg-blue-50" },
+  "post-transition metal": { label: "Post-Transition Metal", bg: "bg-orange-100", text: "text-orange-900", ring: "ring-orange-200", surface: "bg-orange-50" },
+  metalloid: { label: "Metalloid", bg: "bg-purple-100", text: "text-purple-900", ring: "ring-purple-200", surface: "bg-purple-50" },
+  nonmetal: { label: "Nonmetal", bg: "bg-pink-100", text: "text-pink-900", ring: "ring-pink-200", surface: "bg-pink-50" },
+  halogen: { label: "Halogen", bg: "bg-red-100", text: "text-red-900", ring: "ring-red-200", surface: "bg-red-50" },
+  "noble gas": { label: "Noble Gas", bg: "bg-indigo-100", text: "text-indigo-900", ring: "ring-indigo-200", surface: "bg-indigo-50" },
+  lanthanide: { label: "Lanthanide", bg: "bg-teal-100", text: "text-teal-900", ring: "ring-teal-200", surface: "bg-teal-50" },
+  actinide: { label: "Actinide", bg: "bg-cyan-100", text: "text-cyan-900", ring: "ring-cyan-200", surface: "bg-cyan-50" },
 };
 
-const backgroundColors: { [key: string]: string } = {
-  "alkali metal": "bg-yellow-100",
-  "alkaline earth metal": "bg-green-100",
-  "transition metal": "bg-blue-100",
-  "post-transition metal": "bg-orange-100",
-  "metalloid": "bg-purple-100",
-  "nonmetal": "bg-pink-100",
-  "halogen": "bg-red-100",
-  "noble gas": "bg-indigo-100",
-  "lanthanide": "bg-teal-100",
-  "actinide": "bg-cyan-100",
-};
+const normalize = (v?: string) => (v ?? "").toLowerCase().trim();
 
-const ElementDetail = () => {
-  const pathname = usePathname(); // Get the current pathname
-  const router = useRouter(); // Get the router for navigation
-  const symbol = pathname.split("/").pop(); // Extract the symbol from the URL path
-  const [element, setElement] = useState<Element | null>(null); // Define the type for element
-  const [imageUrl, setImageUrl] = useState<string | null>(null); // State to hold the image URL
+// Safer numeric formatting
+const fmt = (val: number | null | undefined, digits = 2) =>
+  typeof val === "number" && !Number.isNaN(val) ? val.toFixed(digits) : "Not found";
 
+const getFunFact = (symbol: string) => facts[symbol] || "No fun fact available.";
+
+// Fetch a Wikipedia thumbnail for an element name
+async function fetchWikipediaThumb(name: string): Promise<string | null> {
+  try {
+    const url = new URL("https://en.wikipedia.org/w/api.php");
+    url.searchParams.set("action", "query");
+    url.searchParams.set("titles", name);
+    url.searchParams.set("prop", "pageimages");
+    url.searchParams.set("format", "json");
+    url.searchParams.set("pithumbsize", "800");
+    url.searchParams.set("origin", "*"); // CORS
+
+    const res = await fetch(url.toString());
+    if (!res.ok) throw new Error(String(res.status));
+    const data = await res.json();
+    const pages = data?.query?.pages ?? {};
+    const firstKey = Object.keys(pages)[0];
+    const thumb = pages?.[firstKey]?.thumbnail?.source as string | undefined;
+    return thumb ?? null;
+  } catch (e) {
+    console.error("Error fetching image from Wikipedia:", e);
+    return null;
+  }
+}
+
+export default function ElementDetail() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const symbolFromPath = useMemo(() => decodeURIComponent(pathname.split("/").pop() || ""), [pathname]);
+
+  const [element, setElement] = useState<Element | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loadingImg, setLoadingImg] = useState<boolean>(false);
+
+  // Resolve element from URL symbol
   useEffect(() => {
-    if (symbol) {
-      const foundElement = elements.find(
-        (el) => el.symbol.toLowerCase() === symbol.toLowerCase()
-      );
-      setElement(foundElement || null); // Set to null if not found
-      if (foundElement) {
-        fetchElementImage(foundElement.name); // Fetch the image
-      }
-    }
-  }, [symbol]);
+    if (!symbolFromPath) return;
+    const found = elements.find((el) => normalize(el.symbol) === normalize(symbolFromPath));
+    setElement(found ?? null);
+  }, [symbolFromPath]);
 
-  // Function to fetch the image from Wikipedia
-  const fetchElementImage = async (elementName: string) => {
-    try {
-      const response = await axios.get(
-        `https://en.wikipedia.org/w/api.php`,
-        {
-          params: {
-            action: "query",
-            titles: elementName,
-            prop: "pageimages",
-            format: "json",
-            pithumbsize: 800, // Increased size for higher quality
-            origin: "*", // Required to bypass CORS
-          },
-        }
-      );
-
-      const pages = response.data.query.pages;
-      const pageId = Object.keys(pages)[0]; // Get the first page ID
-      if (pages[pageId].thumbnail) {
-        setImageUrl(pages[pageId].thumbnail.source); // Set the image URL from the response
-      } else {
-        setImageUrl(null); // If no image is available, set to null
+  // Fetch thumbnail when element changes
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!element?.name) {
+        setImageUrl(null);
+        return;
       }
-    } catch (error) {
-      console.error("Error fetching image from Wikipedia:", error);
-      setImageUrl(null);
-    }
-  };
+      setLoadingImg(true);
+      const url = await fetchWikipediaThumb(element.name);
+      if (alive) {
+        setImageUrl(url);
+        setLoadingImg(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [element?.name]);
 
   if (!element) {
-    return <div>Loading...</div>; // This will stay if the element is not found
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+        <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+          <p className="text-sm text-gray-600">Element not found.</p>
+          <button
+            onClick={() => router.back()}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+          >
+            <span aria-hidden>←</span> Back
+          </button>
+        </div>
+      </div>
+    );
   }
 
-  // Get the color classes based on the element's category
-  const colorClass = categoryColors[element.category.toLowerCase()] || "bg-gray-300 text-gray-900";
-  const backgroundColorClass = backgroundColors[element.category.toLowerCase()] || "bg-gray-100";
+  const catKey = normalize(element.category);
+  const meta = CATEGORY_META[catKey];
+  const wikiHref = `https://en.wikipedia.org/wiki/${encodeURIComponent(element.name)}`;
 
-  // Construct the Wikipedia link
-  const wikipediaLink = `https://en.wikipedia.org/wiki/${element.name}`;
-
-  // Function to render electron configuration with clickable noble gas symbols
+  // Render electron configuration with clickable noble-gas core
   const renderElectronConfiguration = (config: string) => {
-    const regex = /\[(.*?)\]/g; // Regex to match [He], [Ne], etc.
-    const parts = config.split(regex); // Split by noble gas symbols
-    return parts.map((part, index) => {
-      // Check if the part is a noble gas
-      if (index % 2 === 1) {
-        // Odd indexes will be noble gas symbols
-        const nobleGasSymbol = part.trim();
-        const nobleGasElement = elements.find(el => el.symbol === nobleGasSymbol);
-        return nobleGasElement ? (
-          <a
-            key={index}
-            href={`/elements/${nobleGasSymbol}`} // Adjust this URL structure if needed
-            className="text-blue-500 underline"
-          >
-            [{nobleGasSymbol}]
-          </a>
-        ) : (
-          <span key={index}>[{nobleGasSymbol}]</span>
-        );
-      }
-      return part; // Return the rest of the string as-is
-    });
+    const regex = /\[(.*?)\]/g; // [He], [Ne], etc.
+    const parts = config.split(regex);
+    return (
+      <>
+        {parts.map((part, i) => {
+          if (i % 2 === 1) {
+            const noble = part.trim();
+            const target = elements.find((el) => el.symbol === noble);
+            return target ? (
+              <Link
+                key={`${noble}-${i}`}
+                href={`/elements/${noble}`}
+                className="text-blue-600 underline underline-offset-2 hover:text-blue-700"
+              >
+                [{noble}]
+              </Link>
+            ) : (
+              <span key={`${noble}-${i}`}>[{noble}]</span>
+            );
+          }
+          return <span key={i}>{part}</span>;
+        })}
+      </>
+    );
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center ${backgroundColorClass}`}>
-      <div className="absolute top-4 left-4"> {/* Positioning the back button */}
-        <button
-          onClick={() => router.back()} // Handle back navigation
-          className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition duration-200"
-        >
-          Back
-        </button>
-      </div>
-      <div className={`p-6 max-w-3xl mx-auto shadow-md rounded-lg ${colorClass}`}>
-        <h1 className="text-5xl font-bold mb-4">
-          {element.name} ({element.symbol})
-        </h1>
-        <p className="text-lg">
-          <strong>Atomic Number:</strong> {element.atomicNumber}
-        </p>
-        <p className="text-lg">
-          <strong>Atomic Weight:</strong> {element.atomicWeight.toFixed(3)}
-        </p>
-        <p className="text-lg">
-          <strong>Category:</strong> {element.category}
-        </p>
-        <p className="text-lg">
-          <strong>Electron Configuration:</strong> {renderElectronConfiguration(element.electronConfiguration)}
-        </p>
-
-        {/* Additional Information */}
-        <div className="mt-4">
-          <h2 className="text-2xl font-semibold">Properties</h2>
-          <ul className="list-disc ml-6">
-            <li>
-              <strong>Phase:</strong> {element.phase}
-            </li>
-            <li>
-              <strong>Density:</strong> {element.density !== null ? element.density.toFixed(2) : "Not found"} g/cm³
-            </li>
-            <li>
-              <strong>Melting Point:</strong> {element.meltingPoint !== null ? element.meltingPoint.toFixed(2) : "Not found"} °C
-            </li>
-            <li>
-              <strong>Boiling Point:</strong> {element.boilingPoint !== null ? element.boilingPoint.toFixed(2) : "Not found"} °C
-            </li>
-          </ul>
-        </div>
-
-        {/* Image Representation */}
-        <div className="mt-6">
-          <h2 className="text-2xl font-semibold">Image</h2>
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={element.name}
-              className="max-w-xs h-auto mx-auto rounded-md" // Limits width to 300px while maintaining aspect ratio
-            />
-          ) : (
-            <p>No image available</p>
+    <div className={["min-h-screen", meta?.surface ?? "bg-gray-50", "px-4 sm:px-6 lg:px-8 py-6"].join(" ")}> 
+      <div className="mx-auto max-w-5xl">
+        {/* Header / Back */}
+        <div className="mb-4 flex items-center justify-between">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+          >
+            <span aria-hidden>←</span>
+            Back
+          </button>
+          {meta && (
+            <span className={["rounded-full px-3 py-1 text-xs font-semibold ring-1", meta.bg, meta.text, meta.ring].join(" ")}>{meta.label}</span>
           )}
         </div>
 
-        {/* Fun Fact */}
-        <div className="mt-6">
-          <h2 className="text-2xl font-semibold">Fun Fact</h2>
-          <p className="italic">{getFunFact(element.symbol)}</p>
-        </div>
+        {/* Card */}
+        <div className="grid gap-6 rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm md:grid-cols-2">
+          {/* Left: main info */}
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+              {element.name} <span className="text-gray-400">({element.symbol})</span>
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">Atomic Number #{element.atomicNumber}</p>
 
-        {/* Wikipedia Link */}
-        <div className="mt-6">
-          <h2 className="text-2xl font-semibold">Learn More</h2>
-          <a
-            href={wikipediaLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 underline"
-          >
-            Read more about {element.name} on Wikipedia
-          </a>
+            {/* Quick stats */}
+            <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <dt className="text-xs text-gray-500">Atomic Weight</dt>
+                <dd className="text-sm font-medium">{fmt((element as any).atomicWeight, 3)}</dd>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <dt className="text-xs text-gray-500">Phase</dt>
+                <dd className="text-sm font-medium">{element.phase ?? "—"}</dd>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <dt className="text-xs text-gray-500">Density (g/cm³)</dt>
+                <dd className="text-sm font-medium">{fmt((element as any).density)}</dd>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <dt className="text-xs text-gray-500">Boiling (°C)</dt>
+                <dd className="text-sm font-medium">{fmt((element as any).boilingPoint)}</dd>
+              </div>
+            </dl>
+
+            {/* Properties list */}
+            <div className="mt-6">
+              <h2 className="text-lg font-semibold">Electron Configuration</h2>
+              <p className="mt-1 text-sm leading-relaxed text-gray-700">
+                {renderElectronConfiguration(element.electronConfiguration)}
+              </p>
+            </div>
+
+            {/* Fun Fact */}
+            <div className="mt-6">
+              <h2 className="text-lg font-semibold">Fun Fact</h2>
+              <p className="mt-1 italic text-gray-700">{getFunFact(element.symbol)}</p>
+            </div>
+
+            {/* Links */}
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a
+                href={wikiHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+              >
+                Learn more on Wikipedia ↗
+              </a>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700"
+              >
+                Explore all elements
+              </Link>
+            </div>
+          </div>
+
+          {/* Right: image */}
+          <div className="md:pl-4">
+            <h2 className="sr-only">Image</h2>
+            <div className={["aspect-square w-full max-w-sm mx-auto rounded-2xl border", meta?.ring ?? "ring-gray-200", "border-gray-200 bg-gray-50 overflow-hidden"].join(" ")}> 
+              {loadingImg ? (
+                <div className="h-full w-full animate-pulse bg-gradient-to-br from-gray-100 to-gray-200" />
+              ) : imageUrl ? (
+                // Using native img to avoid domain config requirements for next/image
+                <img src={imageUrl} alt={element.name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">No image available</div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
-};
-
-const getFunFact = (symbol: string) => {
-  return facts[symbol] || "No fun fact available.";
-};
-
-export default ElementDetail;
+}

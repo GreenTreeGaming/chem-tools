@@ -1,93 +1,230 @@
 "use client";
 
+import { useMemo, useState, useDeferredValue } from "react";
 import { ElementCard } from "./ElementCard";
-import { useElementData } from "../hooks/useElementData";
-import { useState } from "react";
 import { ElementFilter } from "./ElementFilter";
+import { useElementData } from "../hooks/useElementData";
 
-const categoryColors = {
-  "alkali metal": "bg-yellow-300 text-yellow-900",
-  "alkaline earth metal": "bg-green-300 text-green-900",
-  "transition metal": "bg-blue-300 text-blue-900",
-  "post-transition metal": "bg-orange-300 text-orange-900",
-  "metalloid": "bg-purple-300 text-purple-900",
-  "nonmetal": "bg-pink-300 text-pink-900",
-  "halogen": "bg-red-300 text-red-900",
-  "noble gas": "bg-indigo-300 text-indigo-900",
-  "lanthanide": "bg-teal-300 text-teal-900",
-  "actinide": "bg-cyan-300 text-cyan-900",
+// Single source of truth for category styles + labels
+export const CATEGORY_META: Record<
+  Lowercase<
+    | "Alkali Metal"
+    | "Alkaline Earth Metal"
+    | "Transition Metal"
+    | "Post-Transition Metal"
+    | "Metalloid"
+    | "Nonmetal"
+    | "Halogen"
+    | "Noble Gas"
+    | "Lanthanide"
+    | "Actinide"
+  >
+, { label: string; bg: string; text: string; ring: string }
+> = {
+  "alkali metal": {
+    label: "Alkali Metal",
+    bg: "bg-yellow-100",
+    text: "text-yellow-900",
+    ring: "ring-yellow-200",
+  },
+  "alkaline earth metal": {
+    label: "Alkaline Earth Metal",
+    bg: "bg-green-100",
+    text: "text-green-900",
+    ring: "ring-green-200",
+  },
+  "transition metal": {
+    label: "Transition Metal",
+    bg: "bg-blue-100",
+    text: "text-blue-900",
+    ring: "ring-blue-200",
+  },
+  "post-transition metal": {
+    label: "Post-Transition Metal",
+    bg: "bg-orange-100",
+    text: "text-orange-900",
+    ring: "ring-orange-200",
+  },
+  metalloid: {
+    label: "Metalloid",
+    bg: "bg-purple-100",
+    text: "text-purple-900",
+    ring: "ring-purple-200",
+  },
+  nonmetal: {
+    label: "Nonmetal",
+    bg: "bg-pink-100",
+    text: "text-pink-900",
+    ring: "ring-pink-200",
+  },
+  halogen: {
+    label: "Halogen",
+    bg: "bg-red-100",
+    text: "text-red-900",
+    ring: "ring-red-200",
+  },
+  "noble gas": {
+    label: "Noble Gas",
+    bg: "bg-indigo-100",
+    text: "text-indigo-900",
+    ring: "ring-indigo-200",
+  },
+  lanthanide: {
+    label: "Lanthanide",
+    bg: "bg-teal-100",
+    text: "text-teal-900",
+    ring: "ring-teal-200",
+  },
+  actinide: {
+    label: "Actinide",
+    bg: "bg-cyan-100",
+    text: "text-cyan-900",
+    ring: "ring-cyan-200",
+  },
 };
+
+const normalize = (v: string) => v.toLowerCase().trim();
 
 const ColorLegend = () => {
   return (
-    <div className="flex justify-center flex-wrap p-4 mb-4 border border-gray-300 rounded bg-gray-100 shadow-md">
-      {Object.entries(categoryColors).map(([category, colorClass]) => (
-        <div key={category} className="flex items-center mx-2 my-1">
-          <div className={`w-8 h-8 ${colorClass} rounded-full mr-2`} />
-          <span className="font-semibold">
-            {category.charAt(0).toUpperCase() + category.slice(1)}
-          </span>
-        </div>
-      ))}
+    <div
+      className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5"
+      role="region"
+      aria-label="Category color legend"
+    >
+      <div className="flex flex-wrap gap-3">
+        {Object.entries(CATEGORY_META).map(([k, meta]) => (
+          <div
+            key={k}
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ring-1 ${meta.bg} ${meta.text} ${meta.ring}`}
+          >
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-current opacity-70" />
+            <span className="text-sm font-medium">{meta.label}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
 export const PeriodicTable = () => {
   const elements = useElementData();
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [searchQuery, setSearchQuery] = useState(""); // New state for search query
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [searchInput, setSearchInput] = useState<string>("");
 
-  // Filter elements based on the selected category and search query
-  const filteredElements = elements.filter((element) => {
-    // Check if the element matches the selected category (if any)
-    const matchesCategory =
-      selectedCategory === "all" ||
-      element.category.toLowerCase() === selectedCategory.toLowerCase();
+  // Smooth typing without re-filtering on every keystroke
+  const deferredQuery = useDeferredValue(searchInput);
+  const query = normalize(deferredQuery);
 
-    // Check if the element matches the search query
-    const matchesSearch =
-      element.atomicNumber.toString().includes(searchQuery) ||
-      element.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      element.symbol.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredElements = useMemo(() => {
+    const isAll = normalize(selectedCategory) === "all";
 
-    return matchesCategory && matchesSearch;
-  });
+    return elements.filter((el) => {
+      const cat = normalize(el.category || "");
+      const matchesCategory = isAll || cat === normalize(selectedCategory);
+
+      if (!query) return matchesCategory;
+
+      const inNumber = String(el.atomicNumber).includes(query);
+      const inName = (el.name || "").toLowerCase().includes(query);
+      const inSymbol = (el.symbol || "").toLowerCase().includes(query);
+
+      return matchesCategory && (inNumber || inName || inSymbol);
+    });
+  }, [elements, selectedCategory, query]);
 
   return (
-    <div>
-      <ColorLegend />
-      {/* Search bar for filtering */}
-      <div className="flex justify-center mb-4">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by atomic number, name, or symbol"
-          className="border border-gray-300 p-2 rounded-lg w-full max-w-xs shadow-sm focus:outline-none focus:border-blue-500"
-        />
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+      {/* Header */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+            Interactive Periodic Table
+          </h1>
+          <p className="text-sm text-gray-500">
+            Search by atomic number, name, or symbol. Filter by category.
+          </p>
+        </div>
       </div>
-      <ElementFilter selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
-      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 p-6">
-        {filteredElements.length > 0 ? (
-          filteredElements.map((element) => (
-            <ElementCard
-              key={element.symbol}
-              atomicNumber={element.atomicNumber}
-              symbol={element.symbol}
-              name={element.name}
-              atomicWeight={element.atomicWeight}
-              category={element.category}
-              electronConfiguration={element.electronConfiguration}   // Added for electron configuration
-              density={element.density}          // Added for density (can be null for unknown values)
-              meltingPoint={element.meltingPoint}   // Added for melting point (can be null for unknown values)
-              boilingPoint={element.boilingPoint}    // Added for boiling point (can be null for unknown values)
-              phase={element.phase}
+
+      <div className="grid gap-4">
+        <ColorLegend />
+
+        {/* Controls */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {/* Search */}
+          <label className="relative block w-full sm:max-w-sm">
+            <span className="sr-only">Search elements</span>
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search: 26 or iron or Fe"
+              aria-label="Search elements by atomic number, name, or symbol"
+              className="w-full rounded-xl border border-gray-300 bg-white px-10 py-2.5 text-sm shadow-sm outline-none transition focus:border-blue-500 focus:ring focus:ring-blue-200"
             />
-          ))
-        ) : (
-          <p className="col-span-full text-center">No elements found</p>
-        )}
+            <svg
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M12.9 14.32a7 7 0 111.414-1.414l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387zM14 8a6 6 0 11-12 0 6 6 0 0112 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => setSearchInput("")}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
+              >
+                Clear
+              </button>
+            )}
+          </label>
+
+          {/* Category Filter (pills) */}
+          <ElementFilter
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
+        </div>
+
+        {/* Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4">
+          {filteredElements.length > 0 ? (
+            filteredElements.map((el) => (
+              <ElementCard
+                key={el.symbol}
+                atomicNumber={el.atomicNumber}
+                symbol={el.symbol}
+                name={el.name}
+                category={el.category}
+                // the rest of your fields can still be passed if your card uses them
+                // atomicWeight={el.atomicWeight}
+                // electronConfiguration={el.electronConfiguration}
+                // density={el.density}
+                // meltingPoint={el.meltingPoint}
+                // boilingPoint={el.boilingPoint}
+                // phase={el.phase}
+              />
+            ))
+          ) : (
+            <div className="col-span-full">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
+                <span className="mb-2 text-3xl">🔎</span>
+                <p className="font-medium">No elements found</p>
+                <p className="mt-1 text-sm text-gray-500">
+                  Try a different search term or pick another category.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
