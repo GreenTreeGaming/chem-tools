@@ -5,7 +5,7 @@ import { ElementCard } from "./ElementCard";
 import { ElementFilter } from "./ElementFilter";
 import { useElementData } from "../hooks/useElementData";
 
-// Single source of truth for category styles + labels
+// Category styles / labels (fallback styling provided below if an unknown category appears)
 export const CATEGORY_META: Record<
   Lowercase<
     | "Alkali Metal"
@@ -18,8 +18,8 @@ export const CATEGORY_META: Record<
     | "Noble Gas"
     | "Lanthanide"
     | "Actinide"
-  >
-, { label: string; bg: string; text: string; ring: string }
+  >,
+  { label: string; bg: string; text: string; ring: string }
 > = {
   "alkali metal": {
     label: "Alkali Metal",
@@ -85,7 +85,7 @@ export const CATEGORY_META: Record<
 
 const normalize = (v: string) => v.toLowerCase().trim();
 
-const ColorLegend = () => {
+const ColorLegend = ({ cats }: { cats: string[] }) => {
   return (
     <div
       className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5"
@@ -93,15 +93,24 @@ const ColorLegend = () => {
       aria-label="Category color legend"
     >
       <div className="flex flex-wrap gap-3">
-        {Object.entries(CATEGORY_META).map(([k, meta]) => (
-          <div
-            key={k}
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ring-1 ${meta.bg} ${meta.text} ${meta.ring}`}
-          >
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-current opacity-70" />
-            <span className="text-sm font-medium">{meta.label}</span>
-          </div>
-        ))}
+        {cats.map((k) => {
+          const meta =
+            CATEGORY_META[k as keyof typeof CATEGORY_META] ?? {
+              label: k,
+              bg: "bg-gray-100",
+              text: "text-gray-900",
+              ring: "ring-gray-200",
+            };
+        return (
+            <div
+              key={k}
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ring-1 ${meta.bg} ${meta.text} ${meta.ring}`}
+            >
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-current opacity-70" />
+              <span className="text-sm font-medium">{meta.label}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -111,6 +120,16 @@ export const PeriodicTable = () => {
   const elements = useElementData();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchInput, setSearchInput] = useState<string>("");
+
+  // Build category list directly from data to avoid drift
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    elements.forEach((e) => {
+      const k = normalize(e.category || "");
+      if (k) set.add(k);
+    });
+    return ["all", ...Array.from(set).sort()];
+  }, [elements]);
 
   // Smooth typing without re-filtering on every keystroke
   const deferredQuery = useDeferredValue(searchInput);
@@ -145,10 +164,13 @@ export const PeriodicTable = () => {
             Search by atomic number, name, or symbol. Filter by category.
           </p>
         </div>
+        <div className="text-sm text-gray-500">
+          {filteredElements.length} / {elements.length} elements
+        </div>
       </div>
 
       <div className="grid gap-4">
-        <ColorLegend />
+        <ColorLegend cats={categories.filter((c) => c !== "all")} />
 
         {/* Controls */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -204,7 +226,7 @@ export const PeriodicTable = () => {
                 symbol={el.symbol}
                 name={el.name}
                 category={el.category}
-                // the rest of your fields can still be passed if your card uses them
+                // other props available if needed:
                 // atomicWeight={el.atomicWeight}
                 // electronConfiguration={el.electronConfiguration}
                 // density={el.density}

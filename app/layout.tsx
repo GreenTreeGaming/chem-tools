@@ -17,8 +17,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Periodic Table of Elements",
-  description: "Elements on the periodic table!",
+  title: "Chemistry Tools Hub",
+  description: "Chemistry tools for any chemistry class!",
 };
 
 export default function RootLayout({
