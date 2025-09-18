@@ -5,20 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { elements } from "../../../utils/elementsData";
 import type { Element } from "../../../types/element";
-
-// Category styling (same palette)
-const CATEGORY_META: Record<string, { label: string; bg: string; text: string; ring: string; surface: string }> = {
-  "alkali metal": { label: "Alkali Metal", bg: "bg-yellow-100", text: "text-yellow-900", ring: "ring-yellow-200", surface: "bg-yellow-50" },
-  "alkaline earth metal": { label: "Alkaline Earth Metal", bg: "bg-green-100", text: "text-green-900", ring: "ring-green-200", surface: "bg-green-50" },
-  "transition metal": { label: "Transition Metal", bg: "bg-blue-100", text: "text-blue-900", ring: "ring-blue-200", surface: "bg-blue-50" },
-  "post-transition metal": { label: "Post-Transition Metal", bg: "bg-orange-100", text: "text-orange-900", ring: "ring-orange-200", surface: "bg-orange-50" },
-  metalloid: { label: "Metalloid", bg: "bg-purple-100", text: "text-purple-900", ring: "ring-purple-200", surface: "bg-purple-50" },
-  nonmetal: { label: "Nonmetal", bg: "bg-pink-100", text: "text-pink-900", ring: "ring-pink-200", surface: "bg-pink-50" },
-  halogen: { label: "Halogen", bg: "bg-red-100", text: "text-red-900", ring: "ring-red-200", surface: "bg-red-50" },
-  "noble gas": { label: "Noble Gas", bg: "bg-indigo-100", text: "text-indigo-900", ring: "ring-indigo-200", surface: "bg-indigo-50" },
-  lanthanide: { label: "Lanthanide", bg: "bg-teal-100", text: "text-teal-900", ring: "ring-teal-200", surface: "bg-teal-50" },
-  actinide: { label: "Actinide", bg: "bg-cyan-100", text: "text-cyan-900", ring: "ring-cyan-200", surface: "bg-cyan-50" },
-};
+import { CATEGORY_META, normalizeCat } from "@/utils/categoryMeta";
 
 const norm = (v?: string) => (v ?? "").toLowerCase().trim();
 const fmt = (val: number | null | undefined, digits = 2) =>

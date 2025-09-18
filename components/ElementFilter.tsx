@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { CATEGORY_META } from "./PeriodicTable";
+import { CATEGORY_META } from "@/utils/categoryMeta";
 
 interface ElementFilterProps {
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
+  categories?: string[]; // optional list to show
 }
 
 const ALL = "all";
@@ -17,6 +18,11 @@ export const ElementFilter = ({
     []
   );
 
+  const cats = useMemo(
+    () => categories && categories.length ? categories : ["all", ...Object.keys(CATEGORY_META)],
+    [categories]
+  );
+
   const norm = (v: string) => v.toLowerCase();
 
   return (
@@ -26,7 +32,7 @@ export const ElementFilter = ({
         role="tablist"
         aria-label="Filter by category"
       >
-        {categories.map((cat) => {
+        {cats.map((cat) => {
           const isActive = norm(selectedCategory) === norm(cat);
           const meta =
             cat === ALL ? null : CATEGORY_META[cat as keyof typeof CATEGORY_META];
@@ -37,12 +43,12 @@ export const ElementFilter = ({
               aria-selected={isActive}
               onClick={() => onCategoryChange(cat)}
               className={[
-                "rounded-full px-3.5 py-1.5 text-sm font-medium transition ring-1",
+                "rounded-full px-3.5 py-1.5 text-sm font-medium transition",
                 isActive
                   ? meta
-                    ? `${meta.bg} ${meta.text} ${meta.ring}`
-                    : "bg-gray-900 text-white ring-gray-900"
-                  : "bg-white text-gray-700 hover:bg-gray-50 ring-gray-200",
+                    ? `${meta.bg} ${meta.text}`
+                    : "bg-gray-900 text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-50"
               ].join(" ")}
             >
               {cat === ALL ? "All" : meta?.label ?? cat}

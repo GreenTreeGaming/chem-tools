@@ -1,6 +1,7 @@
 // utils/elementsData.ts
 import type { Element } from "../types/element";
 import raw from "./rawElements.json";
+import { normalizeCat } from "./categoryMeta";
 
 type RawImage = { title?: string; url?: string; attribution?: string };
 type RawElement = {
@@ -41,11 +42,15 @@ const kToC = (k: number | null): number | null =>
 
 const normalizeCategory = (src: string): string => {
   const s = src.toLowerCase();
+
   if (s.includes("noble gas")) return "noble gas";
   if (s.includes("alkali metal")) return "alkali metal";
   if (s.includes("alkaline earth metal")) return "alkaline earth metal";
-  if (s.includes("transition metal")) return "transition metal";
+
+  // 🔧 check this first
   if (s.includes("post-transition")) return "post-transition metal";
+  if (s.includes("transition metal")) return "transition metal";
+
   if (s.includes("lanthanide")) return "lanthanide";
   if (s.includes("actinide")) return "actinide";
   if (s.includes("metalloid")) return "metalloid";
@@ -59,7 +64,7 @@ const toElement = (r: RawElement): Element => ({
   symbol: r.symbol,
   name: r.name,
   atomicWeight: typeof r.atomic_mass === "number" ? +r.atomic_mass.toFixed(3) : null,
-  category: normalizeCategory(r.category),
+  category: normalizeCat(r.category),
   phase: r.phase,
 
   meltingPoint: kToC(r.melt),

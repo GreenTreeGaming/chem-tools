@@ -17,7 +17,7 @@ export type Element = {
   shells?: number[] | null;
   period?: number | null;
   group?: number | null;
-  block?: string | null;
+  block?: "s" | "p" | "d" | "f" | string;
 
   // physical / atomic
   density: number | null;            // g/cm³

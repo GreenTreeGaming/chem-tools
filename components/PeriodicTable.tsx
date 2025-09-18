@@ -1,172 +1,102 @@
+// components/PeriodicTable.tsx
 "use client";
 
 import { useMemo, useState, useDeferredValue } from "react";
 import { ElementCard } from "./ElementCard";
 import { ElementFilter } from "./ElementFilter";
 import { useElementData } from "../hooks/useElementData";
-
-// Category styles / labels (fallback styling provided below if an unknown category appears)
-export const CATEGORY_META: Record<
-  Lowercase<
-    | "Alkali Metal"
-    | "Alkaline Earth Metal"
-    | "Transition Metal"
-    | "Post-Transition Metal"
-    | "Metalloid"
-    | "Nonmetal"
-    | "Halogen"
-    | "Noble Gas"
-    | "Lanthanide"
-    | "Actinide"
-  >,
-  { label: string; bg: string; text: string; ring: string }
-> = {
-  "alkali metal": {
-    label: "Alkali Metal",
-    bg: "bg-yellow-100",
-    text: "text-yellow-900",
-    ring: "ring-yellow-200",
-  },
-  "alkaline earth metal": {
-    label: "Alkaline Earth Metal",
-    bg: "bg-green-100",
-    text: "text-green-900",
-    ring: "ring-green-200",
-  },
-  "transition metal": {
-    label: "Transition Metal",
-    bg: "bg-blue-100",
-    text: "text-blue-900",
-    ring: "ring-blue-200",
-  },
-  "post-transition metal": {
-    label: "Post-Transition Metal",
-    bg: "bg-orange-100",
-    text: "text-orange-900",
-    ring: "ring-orange-200",
-  },
-  metalloid: {
-    label: "Metalloid",
-    bg: "bg-purple-100",
-    text: "text-purple-900",
-    ring: "ring-purple-200",
-  },
-  nonmetal: {
-    label: "Nonmetal",
-    bg: "bg-pink-100",
-    text: "text-pink-900",
-    ring: "ring-pink-200",
-  },
-  halogen: {
-    label: "Halogen",
-    bg: "bg-red-100",
-    text: "text-red-900",
-    ring: "ring-red-200",
-  },
-  "noble gas": {
-    label: "Noble Gas",
-    bg: "bg-indigo-100",
-    text: "text-indigo-900",
-    ring: "ring-indigo-200",
-  },
-  lanthanide: {
-    label: "Lanthanide",
-    bg: "bg-teal-100",
-    text: "text-teal-900",
-    ring: "ring-teal-200",
-  },
-  actinide: {
-    label: "Actinide",
-    bg: "bg-cyan-100",
-    text: "text-cyan-900",
-    ring: "ring-cyan-200",
-  },
-};
+import type { Element } from "@/types/element";
+import { CATEGORY_META, normalizeCat } from "@/utils/categoryMeta";
 
 const normalize = (v: string) => v.toLowerCase().trim();
 
-const ColorLegend = ({ cats }: { cats: string[] }) => {
-  return (
-    <div
-      className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5"
-      role="region"
-      aria-label="Category color legend"
-    >
-      <div className="flex flex-wrap gap-3">
-        {cats.map((k) => {
-          const meta =
-            CATEGORY_META[k as keyof typeof CATEGORY_META] ?? {
-              label: k,
-              bg: "bg-gray-100",
-              text: "text-gray-900",
-              ring: "ring-gray-200",
-            };
+const ColorLegend = ({ cats }: { cats: string[] }) => (
+  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5" role="region" aria-label="Category color legend">
+    <div className="flex flex-wrap gap-3">
+      {cats.map((k) => {
+        const meta = (CATEGORY_META as any)[k] ?? { label: k, bg: "bg-gray-100", text: "text-gray-900", ring: "ring-gray-200" };
         return (
-            <div
-              key={k}
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ring-1 ${meta.bg} ${meta.text} ${meta.ring}`}
-            >
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-current opacity-70" />
-              <span className="text-sm font-medium">{meta.label}</span>
-            </div>
-          );
-        })}
-      </div>
+          <div key={k} className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${meta.bg} ${meta.text}`}>
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-current opacity-70" />
+            <span className="text-sm font-medium">{meta.label ?? k}</span>
+          </div>
+        );
+      })}
     </div>
-  );
-};
+  </div>
+);
 
 export const PeriodicTable = () => {
-  const elements = useElementData();
+  const data = useElementData();
+
+  // normalize categories on the fly
+  const elements = useMemo(() => {
+    return data.map((e) => ({
+      ...e,
+      _normCategory: normalizeCat(e.category || ""), // add a normalized field
+    }));
+  }, [data]);
+
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchInput, setSearchInput] = useState<string>("");
 
-  // Build category list directly from data to avoid drift
+  // categories from *normalized* data
   const categories = useMemo(() => {
     const set = new Set<string>();
     elements.forEach((e) => {
-      const k = normalize(e.category || "");
+      const k = String(e._normCategory || "");
       if (k) set.add(k);
     });
     return ["all", ...Array.from(set).sort()];
   }, [elements]);
 
-  // Smooth typing without re-filtering on every keystroke
   const deferredQuery = useDeferredValue(searchInput);
-  const query = normalize(deferredQuery);
+  const query = String(normalizeCat(deferredQuery));
+  const isAll = String(normalizeCat(selectedCategory)) === "all";
 
-  const filteredElements = useMemo(() => {
-    const isAll = normalize(selectedCategory) === "all";
+  const visible = useMemo(() => {
+    return new Set(
+      elements
+        .filter((el) => {
+          const cat = String(el._normCategory || "");
+          const matchesCategory = isAll || cat === String(normalizeCat(selectedCategory));
+          if (!matchesCategory) return false;
+          if (!query) return true;
+          const inNumber = String(el.atomicNumber).includes(query);
+          const inName = (el.name || "").toLowerCase().includes(query);
+          const inSymbol = (el.symbol || "").toLowerCase().includes(query);
+          return inNumber || inName || inSymbol;
+        })
+        .map((el) => el.symbol)
+    );
+  }, [elements, selectedCategory, query, isAll]);
 
-    return elements.filter((el) => {
-      const cat = normalize(el.category || "");
-      const matchesCategory = isAll || cat === normalize(selectedCategory);
+  // helpers for layout
+  const GRID_COLS = 18;
+  const GRID_ROWS = 10;
+  const colLabels = Array.from({ length: GRID_COLS }, (_, i) => i + 1);
+  const rowLabels = [1, 2, 3, 4, 5, 6, 7, "La–Lu", "Ac–Lr"];
 
-      if (!query) return matchesCategory;
-
-      const inNumber = String(el.atomicNumber).includes(query);
-      const inName = (el.name || "").toLowerCase().includes(query);
-      const inSymbol = (el.symbol || "").toLowerCase().includes(query);
-
-      return matchesCategory && (inNumber || inName || inSymbol);
+  const byPosition = useMemo(() => {
+    const map = new Map<string, Element>();
+    elements.forEach((el) => {
+      const x = (el as any).xpos ?? (el as any).group ?? null;
+      const y = (el as any).ypos ?? (el as any).period ?? null;
+      if (!x || !y) return;
+      map.set(`${x},${y}`, el);
     });
-  }, [elements, selectedCategory, query]);
+    return map;
+  }, [elements]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-            Interactive Periodic Table
-          </h1>
-          <p className="text-sm text-gray-500">
-            Search by atomic number, name, or symbol. Filter by category.
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Interactive Periodic Table</h1>
+          <p className="text-sm text-gray-500">Search / filter; laid out with real period & group positions.</p>
         </div>
-        <div className="text-sm text-gray-500">
-          {filteredElements.length} / {elements.length} elements
-        </div>
+        <div className="text-sm text-gray-500">{visible.size} / {elements.length} elements</div>
       </div>
 
       <div className="grid gap-4">
@@ -191,11 +121,7 @@ export const PeriodicTable = () => {
               fill="currentColor"
               aria-hidden="true"
             >
-              <path
-                fillRule="evenodd"
-                d="M12.9 14.32a7 7 0 111.414-1.414l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387zM14 8a6 6 0 11-12 0 6 6 0 0112 0z"
-                clipRule="evenodd"
-              />
+              <path fillRule="evenodd" d="M12.9 14.32a7 7 0 111.414-1.414l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387zM14 8a6 6 0 11-12 0 6 6 0 0112 0z" clipRule="evenodd" />
             </svg>
             {searchInput && (
               <button
@@ -209,43 +135,82 @@ export const PeriodicTable = () => {
             )}
           </label>
 
-          {/* Category Filter (pills) */}
+          {/* Category Filter */}
           <ElementFilter
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
+            categories={categories}
           />
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4">
-          {filteredElements.length > 0 ? (
-            filteredElements.map((el) => (
-              <ElementCard
-                key={el.symbol}
-                atomicNumber={el.atomicNumber}
-                symbol={el.symbol}
-                name={el.name}
-                category={el.category}
-                // other props available if needed:
-                // atomicWeight={el.atomicWeight}
-                // electronConfiguration={el.electronConfiguration}
-                // density={el.density}
-                // meltingPoint={el.meltingPoint}
-                // boilingPoint={el.boilingPoint}
-                // phase={el.phase}
-              />
-            ))
-          ) : (
-            <div className="col-span-full">
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
-                <span className="mb-2 text-3xl">🔎</span>
-                <p className="font-medium">No elements found</p>
-                <p className="mt-1 text-sm text-gray-500">
-                  Try a different search term or pick another category.
-                </p>
-              </div>
+        {/* Column labels */}
+        <div className="overflow-x-auto">
+          <div className="min-w-[900px]">
+            <div className="mb-1 grid" style={{ gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))` }}>
+              {colLabels.map((c) => (
+                <div key={c} className="text-[10px] text-gray-500 text-center">{c}</div>
+              ))}
             </div>
-          )}
+
+            {/* Main grid */}
+            <div
+              className="relative grid gap-1 rounded-2xl border border-gray-200 bg-white p-2 shadow-sm"
+              style={{
+                gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${GRID_ROWS}, minmax(48px, 1fr))`,
+              }}
+            >
+              {/* Row labels on the left (visually via absolute sticky column, simpler: overlay) */}
+              {/* Render each positioned element */}
+              {Array.from(byPosition.entries()).map(([key, el]) => {
+                const [x, y] = key.split(",").map(Number);
+                const shown = visible.has(el.symbol);
+                if (!x || !y) return null;
+
+                return (
+                  <div
+                    key={el.symbol}
+                    style={{ gridColumnStart: x, gridRowStart: y }}
+                    className="relative"
+                    title={`${el.name} (${el.symbol})`}
+                  >
+                    {shown ? (
+                      <div className="aspect-square">
+                        <ElementCard
+                          atomicNumber={el.atomicNumber}
+                          symbol={el.symbol}
+                          name={el.name}
+                          category={el.category}   // ⬅️ pass the raw dataset category
+                        />
+                      </div>
+                    ) : (
+                      // empty cell placeholder (keeps grid tidy)
+                      <div className="aspect-square rounded-xl border border-transparent" />
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Optional: tiny labels for rows (periods + f-block captions) */}
+              {rowLabels.map((r, idx) => (
+                <div
+                  key={`rowlabel-${idx}`}
+                  style={{ gridColumn: `1 / span ${GRID_COLS}`, gridRowStart: idx + 1 }}
+                  aria-hidden
+                  className="pointer-events-none select-none"
+                >
+                  <div className="absolute -left-8 mt-1 text-[10px] text-gray-500">
+                    {typeof r === "number" ? `Period ${r}` : r}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Tiny caption for f-block */}
+            <div className="mt-1 text-[10px] text-gray-400">
+              * Lanthanides and Actinides shown as detached rows.
+            </div>
+          </div>
         </div>
       </div>
     </div>
