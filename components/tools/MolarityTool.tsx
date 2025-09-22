@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { CATEGORY_META } from "@/utils/categoryMeta";
 
 function toNumber(s: string) {
   const n = parseFloat(s);
@@ -8,9 +9,8 @@ function toNumber(s: string) {
 }
 function fmt(x: number | null, digits = 3) {
   if (x === null || !Number.isFinite(x)) return "—";
-  // flip to scientific if too large/small
   const ax = Math.abs(x);
-  if ((ax !== 0 && (ax < 1e-3 || ax >= 1e5))) return x.toExponential(digits);
+  if (ax !== 0 && (ax < 1e-3 || ax >= 1e5)) return x.toExponential(digits);
   return x.toFixed(digits);
 }
 
@@ -24,7 +24,7 @@ export function MolarityTool() {
     const n = toNumber(moles);
     const vInput = toNumber(volume);
     if (!Number.isFinite(n) || !Number.isFinite(vInput)) return null;
-    const vL = volUnit === "L" ? vInput : vInput / 1000; // mL -> L
+    const vL = volUnit === "L" ? vInput : vInput / 1000;
     return vL > 0 ? n / vL : null;
   }, [moles, volume, volUnit]);
 
@@ -33,30 +33,28 @@ export function MolarityTool() {
     (volume && Number.isNaN(toNumber(volume))) ||
     (toNumber(volume) <= 0);
 
-  // Dilution helper (C1 V1 = C2 V2). Leave one field blank to solve it.
+  // Dilution helper (C1 V1 = C2 V2)
   const [c1, setC1] = useState("");
   const [v1, setV1] = useState("");
   const [c2, setC2] = useState("");
   const [v2, setV2] = useState("");
-  const [vUnitDil, setVUnitDil] = useState<"L" | "mL">("mL"); // common lab unit
+  const [vUnitDil, setVUnitDil] = useState<"L" | "mL">("mL");
 
   const dilution = useMemo(() => {
-    // Count how many blanks
     const vals = { c1: c1.trim(), v1: v1.trim(), c2: c2.trim(), v2: v2.trim() };
     const blanks = Object.entries(vals).filter(([_, v]) => v === "");
     if (blanks.length !== 1) return { field: null as string | null, value: null as number | null };
 
-    // Parse knowns; convert volumes to liters
     const _c1 = c1 ? toNumber(c1) : null;
     const _c2 = c2 ? toNumber(c2) : null;
     const _v1 = v1 ? toNumber(v1) : null;
     const _v2 = v2 ? toNumber(v2) : null;
     if (
-      [_c1, _c2, _v1, _v2].some((x, i) => x !== null && !Number.isFinite(x as number)) ||
-      (_v1 !== null && _v1! <= 0) ||
-      (_v2 !== null && _v2! <= 0) ||
-      (_c1 !== null && _c1! < 0) ||
-      (_c2 !== null && _c2! < 0)
+      [_c1, _c2, _v1, _v2].some((x) => x !== null && !Number.isFinite(x as number)) ||
+      (_v1 !== null && _v1 <= 0) ||
+      (_v2 !== null && _v2 <= 0) ||
+      (_c1 !== null && _c1 < 0) ||
+      (_c2 !== null && _c2 < 0)
     ) {
       return { field: blanks[0][0], value: null };
     }
@@ -83,158 +81,172 @@ export function MolarityTool() {
     return { field: blank, value: null };
   }, [c1, v1, c2, v2, vUnitDil]);
 
+  // pick some strong colors from CATEGORY_META
+  const molarityColor = CATEGORY_META["transition metal"]; // blue strong
+  const dilutionColor = CATEGORY_META["alkaline earth metal"]; // green strong
+
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-      <h2 className="text-lg font-semibold">Molarity / Dilution</h2>
+    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      {/* Header with strong color */}
+      <div className={`${molarityColor.bg} ${molarityColor.text} px-4 py-3`}>
+        <h2 className="text-lg font-semibold">Molarity / Dilution</h2>
+        <p className="text-sm opacity-90">Quick helper for M = n/V and C₁V₁ = C₂V₂</p>
+      </div>
 
-      {/* Molarity */}
-      <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        <label className="text-sm">
-          <span className="block text-gray-600 mb-1">Moles of solute (mol)</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            step="any"
-            min="0"
-            value={moles}
-            onChange={(e) => setMoles(e.target.value)}
-            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-          />
-        </label>
-
-        <label className="text-sm col-span-2">
-          <span className="block text-gray-600 mb-1">Solution volume</span>
-          <div className="flex gap-2">
+      <div className="p-4">
+        {/* Molarity */}
+        <h3 className={`text-base font-semibold ${molarityColor.bg} bg-clip-text text-transparent`}>
+          Molarity
+        </h3>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <label className="text-sm">
+            <span className="block text-gray-600 mb-1">Moles of solute (mol)</span>
             <input
               type="number"
               inputMode="decimal"
               step="any"
               min="0"
-              value={volume}
-              onChange={(e) => setVolume(e.target.value)}
+              value={moles}
+              onChange={(e) => setMoles(e.target.value)}
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
             />
-            <select
-              value={volUnit}
-              onChange={(e) => setVolUnit(e.target.value as "L" | "mL")}
-              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-            >
-              <option value="L">L</option>
-              <option value="mL">mL</option>
-            </select>
-          </div>
-        </label>
-      </div>
+          </label>
 
-      <div className="mt-3 text-sm">
-        Molarity:{" "}
-        <b className={molarityError ? "text-red-600" : "text-gray-900"}>
-          {molarityError ? "—" : `${fmt(molarity)} M`}
-        </b>
-      </div>
+          <label className="text-sm col-span-2">
+            <span className="block text-gray-600 mb-1">Solution volume</span>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                inputMode="decimal"
+                step="any"
+                min="0"
+                value={volume}
+                onChange={(e) => setVolume(e.target.value)}
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+              />
+              <select
+                value={volUnit}
+                onChange={(e) => setVolUnit(e.target.value as "L" | "mL")}
+                className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+              >
+                <option value="L">L</option>
+                <option value="mL">mL</option>
+              </select>
+            </div>
+          </label>
+        </div>
 
-      <hr className="my-5 border-dashed" />
+        <div className="mt-3 text-sm">
+          Molarity:{" "}
+          <b className={molarityError ? "text-red-600" : molarityColor.bg.replace("bg-", "text-")}>
+            {molarityError ? "—" : `${fmt(molarity)} M`}
+          </b>
+        </div>
 
-      {/* Dilution (C1 V1 = C2 V2) */}
-      <h3 className="text-base font-semibold">Dilution (C₁V₁ = C₂V₂)</h3>
-      <p className="text-xs text-gray-500">Leave exactly one field blank; we’ll solve it.</p>
+        <hr className="my-5 border-dashed" />
 
-      <div className="mt-3 grid gap-3 sm:grid-cols-4">
-        <label className="text-sm">
-          <span className="block text-gray-600 mb-1">C₁ (M)</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            step="any"
-            min="0"
-            value={c1}
-            onChange={(e) => setC1(e.target.value)}
-            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-          />
-        </label>
-        <label className="text-sm">
-          <span className="block text-gray-600 mb-1">V₁</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            step="any"
-            min="0"
-            value={v1}
-            onChange={(e) => setV1(e.target.value)}
-            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-          />
-        </label>
-        <label className="text-sm">
-          <span className="block text-gray-600 mb-1">C₂ (M)</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            step="any"
-            min="0"
-            value={c2}
-            onChange={(e) => setC2(e.target.value)}
-            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-          />
-        </label>
-        <label className="text-sm">
-          <span className="block text-gray-600 mb-1">V₂</span>
-          <div className="flex gap-2">
+        {/* Dilution */}
+        <h3 className={`text-base font-semibold ${dilutionColor.bg} bg-clip-text text-transparent`}>
+          Dilution (C₁V₁ = C₂V₂)
+        </h3>
+        <p className="text-xs text-gray-500">Leave exactly one field blank; we’ll solve it.</p>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-4">
+          {/* inputs ... keep same, just change focus colors */}
+          <label className="text-sm">
+            <span className="block text-gray-600 mb-1">C₁ (M)</span>
             <input
               type="number"
               inputMode="decimal"
               step="any"
               min="0"
-              value={v2}
-              onChange={(e) => setV2(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+              value={c1}
+              onChange={(e) => setC1(e.target.value)}
+              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-green-500 focus:ring focus:ring-green-200"
             />
-            <select
-              value={vUnitDil}
-              onChange={(e) => setVUnitDil(e.target.value as "L" | "mL")}
-              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-            >
-              <option value="mL">mL</option>
-              <option value="L">L</option>
-            </select>
-          </div>
-        </label>
-      </div>
+          </label>
+          <label className="text-sm">
+            <span className="block text-gray-600 mb-1">V₁</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="any"
+              min="0"
+              value={v1}
+              onChange={(e) => setV1(e.target.value)}
+              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-green-500 focus:ring focus:ring-green-200"
+            />
+          </label>
+          <label className="text-sm">
+            <span className="block text-gray-600 mb-1">C₂ (M)</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="any"
+              min="0"
+              value={c2}
+              onChange={(e) => setC2(e.target.value)}
+              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-green-500 focus:ring focus:ring-green-200"
+            />
+          </label>
+          <label className="text-sm">
+            <span className="block text-gray-600 mb-1">V₂</span>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                inputMode="decimal"
+                step="any"
+                min="0"
+                value={v2}
+                onChange={(e) => setV2(e.target.value)}
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-green-500 focus:ring focus:ring-green-200"
+              />
+              <select
+                value={vUnitDil}
+                onChange={(e) => setVUnitDil(e.target.value as "L" | "mL")}
+                className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-green-500 focus:ring focus:ring-green-200"
+              >
+                <option value="mL">mL</option>
+                <option value="L">L</option>
+              </select>
+            </div>
+          </label>
+        </div>
 
-      <div className="mt-3 text-sm text-gray-700">
-        {dilution.field ? (
-          <>
-            {dilution.field.toUpperCase()} ={" "}
-            <b>
-              {dilution.field.startsWith("v")
-                ? // show in chosen volume unit
-                  (() => {
-                    const valL = dilution.value;
-                    if (valL === null) return "—";
-                    const shown =
-                      vUnitDil === "L" ? valL : valL * 1000;
-                    return `${fmt(shown)} ${vUnitDil}`;
-                  })()
-                : fmt(dilution.value) + " M"}
-            </b>
-          </>
-        ) : (
-          <span className="text-gray-500">
-            Enter three of C₁, V₁, C₂, V₂ (leave one blank).
-          </span>
-        )}
-      </div>
+        <div className="mt-3 text-sm">
+          {dilution.field ? (
+            <>
+              <span className="text-gray-600">{dilution.field.toUpperCase()} = </span>
+              <b className={dilutionColor.bg.replace("bg-", "text-")}>
+                {dilution.field.startsWith("v")
+                  ? (() => {
+                      const valL = dilution.value;
+                      if (valL === null) return "—";
+                      const shown = vUnitDil === "L" ? valL : valL * 1000;
+                      return `${fmt(shown)} ${vUnitDil}`;
+                    })()
+                  : fmt(dilution.value) + " M"}
+              </b>
+            </>
+          ) : (
+            <span className="text-gray-500">
+              Enter three of C₁, V₁, C₂, V₂ (leave one blank).
+            </span>
+          )}
+        </div>
 
-      <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            setMoles("1"); setVolume("1"); setVolUnit("L");
-            setC1(""); setV1(""); setC2(""); setV2(""); setVUnitDil("mL");
-          }}
-          className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-        >
-          Reset
-        </button>
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setMoles("1"); setVolume("1"); setVolUnit("L");
+              setC1(""); setV1(""); setC2(""); setV2(""); setVUnitDil("mL");
+            }}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+          >
+            Reset
+          </button>
+        </div>
       </div>
     </div>
   );

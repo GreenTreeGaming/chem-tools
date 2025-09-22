@@ -38,7 +38,6 @@ function parseFormula(formula: string): Counts {
       const m = NUM_RE.exec(s);
       const mult = m ? parseInt(m[0], 10) : 1;
       if (m) i = NUM_RE.lastIndex;
-
       const group = stack.pop();
       if (!group) throw new Error("Mismatched parentheses");
       const top = stack[stack.length - 1];
@@ -137,7 +136,6 @@ type Amount = AmountMol | AmountG | AmountSolution;
 
 // ---------------- Component ----------------
 export function YieldCalculator() {
-  // default sample
   const [equation, setEquation] = useState("BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2");
 
   const parsed = useMemo(() => {
@@ -249,269 +247,276 @@ export function YieldCalculator() {
       : null;
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
-      <h2 className="text-lg font-semibold">Theoretical Yield & Percent Yield</h2>
-      <p className="text-sm text-gray-500">
-        Paste a <b>balanced</b> equation, enter reactant amounts (mol, g, or solution), pick a product, and—optionally—enter the actual mass to get percent yield.
-      </p>
-
-      {/* Equation */}
-      <div className="mt-4 grid gap-3">
-        <label className="text-sm">
-          <span className="block text-gray-600 mb-1">Balanced equation</span>
-          <input
-            value={equation}
-            onChange={(e) => setEquation(e.target.value)}
-            placeholder="e.g., BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2"
-            className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-          />
-        </label>
+    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="bg-purple-600 px-4 py-3 text-white rounded-t-2xl">
+        <h2 className="text-lg font-semibold">Theoretical Yield & Percent Yield</h2>
+        <p className="text-sm opacity-90">
+          Paste a <b>balanced</b> equation, enter reactant amounts (mol, g, or solution),
+          pick a product, and optionally enter actual mass to compute percent yield.
+        </p>
       </div>
 
-      {/* Reactants + Product selection */}
-      {parsed.ok && (
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {/* Reactants */}
-          <div>
-            <h3 className="text-base font-semibold">Reactants</h3>
-            <div className="mt-2 grid gap-2">
-              {parsed.reactMM.map((r, i) => {
-                const a = amounts[i] as Amount | undefined;
-                const kind = a?.kind ?? "mol";
-                return (
-                  <div key={`${r.coef}-${r.formula}-${i}`} className="rounded-xl border border-gray-200 p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">
-                        {r.coef !== 1 ? `${r.coef} ` : ""}{r.formula}
+      <div className="p-4 sm:p-6">
+        {/* Equation */}
+        <div className="mt-4 grid gap-3">
+          <label className="text-sm">
+            <span className="block text-gray-600 mb-1">Balanced equation</span>
+            <input
+              value={equation}
+              onChange={(e) => setEquation(e.target.value)}
+              placeholder="e.g., BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2"
+              className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200"
+            />
+          </label>
+        </div>
+
+        {/* Reactants + Product selection */}
+        {parsed.ok && (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {/* Reactants */}
+            <div>
+              <h3 className="text-base font-semibold">Reactants</h3>
+              <div className="mt-2 grid gap-2">
+                {parsed.reactMM.map((r, i) => {
+                  const a = amounts[i] as Amount | undefined;
+                  const kind = a?.kind ?? "mol";
+                  return (
+                    <div key={`${r.coef}-${r.formula}-${i}`} className="rounded-xl border border-gray-200 p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-medium">
+                          {r.coef !== 1 ? `${r.coef} ` : ""}{r.formula}
+                        </div>
+                        <div className="text-xs text-gray-500">M = {fmt(r.mm, 4)} g/mol</div>
                       </div>
-                      <div className="text-xs text-gray-500">M = {fmt(r.mm, 4)} g/mol</div>
-                    </div>
 
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <select
-                        value={kind}
-                        onChange={(e) => {
-                          const k = e.target.value as Amount["kind"];
-                          const ex = (a as any)?.excess ?? false;
-                          updateAmount(i, () => {
-                            if (k === "mol") return { kind: "mol", value: "", excess: ex };
-                            if (k === "g") return { kind: "g", value: "", excess: ex };
-                            return { kind: "solution", molarity: "", volume: "", volUnit: "mL", excess: ex };
-                          });
-                        }}
-                        className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                      >
-                        <option value="mol">mol</option>
-                        <option value="g">g</option>
-                        <option value="solution">solution (M & volume)</option>
-                      </select>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <select
+                          value={kind}
+                          onChange={(e) => {
+                            const k = e.target.value as Amount["kind"];
+                            const ex = (a as any)?.excess ?? false;
+                            updateAmount(i, () => {
+                              if (k === "mol") return { kind: "mol", value: "", excess: ex };
+                              if (k === "g") return { kind: "g", value: "", excess: ex };
+                              return { kind: "solution", molarity: "", volume: "", volUnit: "mL", excess: ex };
+                            });
+                          }}
+                          className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200"
+                        >
+                          <option value="mol">mol</option>
+                          <option value="g">g</option>
+                          <option value="solution">solution (M & volume)</option>
+                        </select>
 
-                      <label className="ml-auto flex items-center gap-2 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={(a as any)?.excess ?? false}
-                          onChange={(e) =>
-                            updateAmount(i, (old) => ({ ...(old as any), excess: e.target.checked }))
-                          }
-                          className="h-4 w-4 rounded border-gray-300"
-                        />
-                        Treat as excess
-                      </label>
-                    </div>
-
-                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                      {kind === "mol" && (
-                        <label className="text-sm">
-                          <span className="block text-gray-600 mb-1">Amount (mol)</span>
+                        <label className="ml-auto flex items-center gap-2 text-xs">
                           <input
-                            type="number" inputMode="decimal" step="any" min="0"
-                            disabled={(a as any)?.excess}
-                            value={(a as AmountMol)?.value ?? ""}
-                            onChange={(e) => updateAmount(i, (old) => ({ ...(old as AmountMol), value: e.target.value }))}
-                            className={`w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200
-                              ${(a as any)?.excess ? "bg-gray-50 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
+                            type="checkbox"
+                            checked={(a as any)?.excess ?? false}
+                            onChange={(e) =>
+                              updateAmount(i, (old) => ({ ...(old as any), excess: e.target.checked }))
+                            }
+                            className="h-4 w-4 rounded border-gray-300"
                           />
+                          Treat as excess
                         </label>
-                      )}
+                      </div>
 
-                      {kind === "g" && (
-                        <label className="text-sm">
-                          <span className="block text-gray-600 mb-1">Mass (g)</span>
-                          <input
-                            type="number" inputMode="decimal" step="any" min="0"
-                            disabled={(a as any)?.excess}
-                            value={(a as AmountG)?.value ?? ""}
-                            onChange={(e) => updateAmount(i, (old) => ({ ...(old as AmountG), value: e.target.value }))}
-                            className={`w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200
-                              ${(a as any)?.excess ? "bg-gray-50 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
-                          />
-                        </label>
-                      )}
-
-                      {kind === "solution" && (
-                        <>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        {kind === "mol" && (
                           <label className="text-sm">
-                            <span className="block text-gray-600 mb-1">Molarity (M)</span>
+                            <span className="block text-gray-600 mb-1">Amount (mol)</span>
                             <input
                               type="number" inputMode="decimal" step="any" min="0"
                               disabled={(a as any)?.excess}
-                              value={(a as AmountSolution)?.molarity ?? ""}
-                              onChange={(e) =>
-                                updateAmount(i, (old) => ({ ...(old as AmountSolution), molarity: e.target.value }))
-                              }
-                              className={`w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200
-                                ${(a as any)?.excess ? "bg-gray-50 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
+                              value={(a as AmountMol)?.value ?? ""}
+                              onChange={(e) => updateAmount(i, (old) => ({ ...(old as AmountMol), value: e.target.value }))}
+                              className={`w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200
+                                ${(a as any)?.excess ? "bg-gray-100 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
                             />
                           </label>
-                          <div className="grid grid-cols-[1fr_auto] gap-2">
+                        )}
+
+                        {kind === "g" && (
+                          <label className="text-sm">
+                            <span className="block text-gray-600 mb-1">Mass (g)</span>
+                            <input
+                              type="number" inputMode="decimal" step="any" min="0"
+                              disabled={(a as any)?.excess}
+                              value={(a as AmountG)?.value ?? ""}
+                              onChange={(e) => updateAmount(i, (old) => ({ ...(old as AmountG), value: e.target.value }))}
+                              className={`w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200
+                                ${(a as any)?.excess ? "bg-gray-100 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
+                            />
+                          </label>
+                        )}
+
+                        {kind === "solution" && (
+                          <>
                             <label className="text-sm">
-                              <span className="block text-gray-600 mb-1">Volume</span>
+                              <span className="block text-gray-600 mb-1">Molarity (M)</span>
                               <input
                                 type="number" inputMode="decimal" step="any" min="0"
                                 disabled={(a as any)?.excess}
-                                value={(a as AmountSolution)?.volume ?? ""}
+                                value={(a as AmountSolution)?.molarity ?? ""}
                                 onChange={(e) =>
-                                  updateAmount(i, (old) => ({ ...(old as AmountSolution), volume: e.target.value }))
+                                  updateAmount(i, (old) => ({ ...(old as AmountSolution), molarity: e.target.value }))
                                 }
-                                className={`w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200
-                                  ${(a as any)?.excess ? "bg-gray-50 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
+                                className={`w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200
+                                  ${(a as any)?.excess ? "bg-gray-100 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
                               />
                             </label>
-                            <label className="text-sm">
-                              <span className="sr-only">Volume unit</span>
-                              <select
-                                disabled={(a as any)?.excess}
-                                value={(a as AmountSolution)?.volUnit ?? "mL"}
-                                onChange={(e) =>
-                                  updateAmount(i, (old) => ({ ...(old as AmountSolution), volUnit: e.target.value as "mL" | "L" }))
-                                }
-                                className={`mt-6 rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200
-                                  ${(a as any)?.excess ? "bg-gray-50 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
-                              >
-                                <option value="mL">mL</option>
-                                <option value="L">L</option>
-                              </select>
-                            </label>
-                          </div>
-                        </>
-                      )}
+                            <div className="grid grid-cols-[1fr_auto] gap-2">
+                              <label className="text-sm">
+                                <span className="block text-gray-600 mb-1">Volume</span>
+                                <input
+                                  type="number" inputMode="decimal" step="any" min="0"
+                                  disabled={(a as any)?.excess}
+                                  value={(a as AmountSolution)?.volume ?? ""}
+                                  onChange={(e) =>
+                                    updateAmount(i, (old) => ({ ...(old as AmountSolution), volume: e.target.value }))
+                                  }
+                                  className={`w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200
+                                    ${(a as any)?.excess ? "bg-gray-100 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
+                                />
+                              </label>
+                              <label className="text-sm">
+                                <span className="sr-only">Volume unit</span>
+                                <select
+                                  disabled={(a as any)?.excess}
+                                  value={(a as AmountSolution)?.volUnit ?? "mL"}
+                                  onChange={(e) =>
+                                    updateAmount(i, (old) => ({ ...(old as AmountSolution), volUnit: e.target.value as "mL" | "L" }))
+                                  }
+                                  className={`mt-6 rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200
+                                    ${(a as any)?.excess ? "bg-gray-100 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
+                                >
+                                  <option value="mL">mL</option>
+                                  <option value="L">L</option>
+                                </select>
+                              </label>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Products & actual mass */}
+            <div>
+              <h3 className="text-base font-semibold">Product</h3>
+              <div className="mt-2 grid gap-2">
+                {parsed.prodMM.map((p, i) => (
+                  <div key={`${p.coef}-${p.formula}-${i}`} className="rounded-xl border border-gray-200 p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-medium">{p.coef !== 1 ? `${p.coef} ` : ""}{p.formula}</div>
+                      <div className="text-xs text-gray-500">M = {fmt(p.mm, 4)} g/mol</div>
                     </div>
                   </div>
-                );
-              })}
+                ))}
+              </div>
+
+              <div className="mt-3 grid gap-3">
+                <label className="text-sm">
+                  <span className="block text-gray-600 mb-1">Target product for yield</span>
+                  <select
+                    value={String(targetIdx)}
+                    onChange={(e) => setTargetIdx(parseInt(e.target.value, 10))}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200"
+                  >
+                    {parsed.products?.map((p, i) => (
+                      <option key={i} value={i}>
+                        {p.formula}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="text-sm">
+                  <span className="block text-gray-600 mb-1">Actual mass of product (g)</span>
+                  <input
+                    value={actualMass}
+                    onChange={(e) => setActualMass(e.target.value)}
+                    placeholder="optional, e.g., 1.82"
+                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200"
+                  />
+                </label>
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Products & actual mass */}
-          <div>
-            <h3 className="text-base font-semibold">Product</h3>
-            <div className="mt-2 grid gap-2">
-              {parsed.prodMM.map((p, i) => (
-                <div key={`${p.coef}-${p.formula}-${i}`} className="rounded-xl border border-gray-200 p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium">{p.coef !== 1 ? `${p.coef} ` : ""}{p.formula}</div>
-                    <div className="text-xs text-gray-500">M = {fmt(p.mm, 4)} g/mol</div>
+        {/* Results */}
+        <div className="mt-5">
+          {error && (
+            <div className="rounded-xl bg-red-500 p-3 text-sm text-white">
+              {error}
+            </div>
+          )}
+
+          {parsed.ok && !parsed.missing.length && outcome && (
+            <>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="rounded-xl bg-purple-600 p-3 text-white md:col-span-2">
+                  <div className="text-xs opacity-80">Theoretical Yield ({outcome.product.formula})</div>
+                  <div className="text-sm font-semibold">
+                    {fmt(outcome.product.n, 6)} mol • {fmt(outcome.product.m, 4)} g
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="rounded-xl bg-emerald-600 p-3 text-white">
+                  <div className="text-xs opacity-80">Percent Yield</div>
+                  <div className="text-sm font-semibold">
+                    {percentYield === null ? "—" : `${fmt(percentYield, 2)} %`}
+                  </div>
+                </div>
+              </div>
 
-            <div className="mt-3 grid gap-3">
-              <label className="text-sm">
-                <span className="block text-gray-600 mb-1">Target product for yield</span>
-                <select
-                  value={String(targetIdx)}
-                  onChange={(e) => setTargetIdx(parseInt(e.target.value, 10))}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                >
-                  {parsed.products?.map((p, i) => (
-                    <option key={i} value={i}>
-                      {p.formula}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="text-sm">
-                <span className="block text-gray-600 mb-1">Actual mass of product (g)</span>
-                <input
-                  value={actualMass}
-                  onChange={(e) => setActualMass(e.target.value)}
-                  placeholder="optional, e.g., 1.82"
-                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                />
-              </label>
-            </div>
-          </div>
+              <p className="mt-3 text-xs text-gray-500">
+                Theoretical yield is computed from the limiting reagent via stoichiometry.
+                Enter actual mass to compute percent yield.
+              </p>
+            </>
+          )}
         </div>
-      )}
 
-      {/* Results */}
-      <div className="mt-5">
-        {(!parsed.ok || parsed.missing.length) && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-            {!parsed.ok ? parsed.error : `Missing atomic weights for: ${parsed.missing.join(", ")}`}
-          </div>
-        )}
-
-        {parsed.ok && !parsed.missing.length && outcome && (
-          <>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-xl border border-purple-200 bg-purple-50 p-3 md:col-span-2">
-                <div className="text-xs text-purple-800">Theoretical Yield ({outcome.product.formula})</div>
-                <div className="text-sm font-medium text-purple-900">
-                  {fmt(outcome.product.n, 6)} mol • {fmt(outcome.product.m, 4)} g
-                </div>
-              </div>
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                <div className="text-xs text-emerald-800">Percent Yield</div>
-                <div className="text-sm font-semibold text-emerald-900">
-                  {percentYield === null ? "—" : `${fmt(percentYield, 2)} %`}
-                </div>
-              </div>
-            </div>
-
-            <p className="mt-3 text-xs text-gray-500">
-              Theoretical yield is computed from the limiting reagent via stoichiometry. Enter actual mass to compute percent yield.
-            </p>
-          </>
-        )}
-      </div>
-
-      {/* Examples */}
-      <div className="mt-6">
-        <details className="text-xs text-gray-600">
-          <summary className="cursor-pointer select-none">Examples</summary>
-          <ul className="ml-4 mt-2 list-disc space-y-1">
-            <li>
-              <button
-                className="underline hover:text-blue-600"
-                onClick={() => setEquation("BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2")}
-                type="button"
-              >
-                BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2
-              </button>
-            </li>
-            <li>
-              <button
-                className="underline hover:text-blue-600"
-                onClick={() => setEquation("2 H2 + O2 -> 2 H2O")}
-                type="button"
-              >
-                2 H2 + O2 -> 2 H2O
-              </button>
-            </li>
-            <li>
-              <button
-                className="underline hover:text-blue-600"
-                onClick={() => setEquation("C3H8 + 5 O2 -> 3 CO2 + 4 H2O")}
-                type="button"
-              >
-                C3H8 + 5 O2 -> 3 CO2 + 4 H2O
-              </button>
-            </li>
-          </ul>
-        </details>
+        {/* Examples */}
+        <div className="mt-6">
+          <details className="text-xs text-gray-600">
+            <summary className="cursor-pointer select-none">Examples</summary>
+            <ul className="ml-4 mt-2 list-disc space-y-1">
+              <li>
+                <button
+                  className="underline hover:text-purple-600"
+                  onClick={() => setEquation("BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2")}
+                  type="button"
+                >
+                  BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2
+                </button>
+              </li>
+              <li>
+                <button
+                  className="underline hover:text-purple-600"
+                  onClick={() => setEquation("2 H2 + O2 -> 2 H2O")}
+                  type="button"
+                >
+                  2 H2 + O2 -> 2 H2O
+                </button>
+              </li>
+              <li>
+                <button
+                  className="underline hover:text-purple-600"
+                  onClick={() => setEquation("C3H8 + 5 O2 -> 3 CO2 + 4 H2O")}
+                  type="button"
+                >
+                  C3H8 + 5 O2 -> 3 CO2 + 4 H2O
+                </button>
+              </li>
+            </ul>
+          </details>
+        </div>
       </div>
     </div>
   );
