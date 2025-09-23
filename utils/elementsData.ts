@@ -64,7 +64,7 @@ const toElement = (r: RawElement): Element => ({
   symbol: r.symbol,
   name: r.name,
   atomicWeight: typeof r.atomic_mass === "number" ? +r.atomic_mass.toFixed(3) : null,
-  category: normalizeCat(r.category),
+  category: normalizeCat(r.category, r.group),
   phase: r.phase,
 
   meltingPoint: kToC(r.melt),

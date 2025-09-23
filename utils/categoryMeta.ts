@@ -36,12 +36,6 @@ export const CATEGORY_META = {
     text: "text-white",
     ring: "ring-pink-700"
   },
-  halogen: {
-    label: "Halogen",
-    bg: "bg-red-500",
-    text: "text-white",
-    ring: "ring-red-700"
-  },
   "noble gas": {
     label: "Noble Gas",
     bg: "bg-indigo-500",
@@ -73,7 +67,7 @@ export const normalizeCat = (raw: string): keyof typeof CATEGORY_META | string =
     .replace(/\s+/g, " ");                  // collapse extra spaces
 
   const aliases: Record<string, keyof typeof CATEGORY_META> = {
-    "diatomic nonmetal": "nonmetal",
+    "diatomic nonmetal": "halogen",
     "polyatomic nonmetal": "nonmetal",
     "other nonmetals": "nonmetal",
     "other nonmetal": "nonmetal",

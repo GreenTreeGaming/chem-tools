@@ -51,16 +51,13 @@ export const PeriodicTable = () => {
   }, [elements]);
 
   const deferredQuery = useDeferredValue(searchInput);
-  const query = String(normalizeCat(deferredQuery));
+  const query = deferredQuery.toLowerCase().trim();
   const isAll = String(normalizeCat(selectedCategory)) === "all";
 
   const visible = useMemo(() => {
     return new Set(
       elements
         .filter((el) => {
-          const cat = String(el._normCategory || "");
-          const matchesCategory = isAll || cat === String(normalizeCat(selectedCategory));
-          if (!matchesCategory) return false;
           if (!query) return true;
           const inNumber = String(el.atomicNumber).includes(query);
           const inName = (el.name || "").toLowerCase().includes(query);
@@ -69,7 +66,7 @@ export const PeriodicTable = () => {
         })
         .map((el) => el.symbol)
     );
-  }, [elements, selectedCategory, query, isAll]);
+  }, [elements, query]);
 
   // helpers for layout
   const GRID_COLS = 18;
@@ -161,32 +158,34 @@ export const PeriodicTable = () => {
               }}
             >
               {/* Row labels on the left (visually via absolute sticky column, simpler: overlay) */}
-              {/* Render each positioned element */}
               {Array.from(byPosition.entries()).map(([key, el]) => {
                 const [x, y] = key.split(",").map(Number);
-                const shown = visible.has(el.symbol);
                 if (!x || !y) return null;
+
+                // search match
+                const matchesSearch = visible.has(el.symbol);
+
+                // category match
+                const matchesCategory =
+                  selectedCategory === "all" ||
+                  normalizeCat(el.category) === normalizeCat(selectedCategory);
 
                 return (
                   <div
                     key={el.symbol}
                     style={{ gridColumnStart: x, gridRowStart: y }}
                     className="relative"
-                    title={`${el.name} (${el.symbol})`}
                   >
-                    {shown ? (
-                      <div className="aspect-square">
-                        <ElementCard
-                          atomicNumber={el.atomicNumber}
-                          symbol={el.symbol}
-                          name={el.name}
-                          category={el.category}   // ⬅️ pass the raw dataset category
-                        />
-                      </div>
-                    ) : (
-                      // empty cell placeholder (keeps grid tidy)
-                      <div className="aspect-square rounded-xl border border-transparent" />
-                    )}
+                    <div className="aspect-square">
+                      <ElementCard
+                        atomicNumber={el.atomicNumber}
+                        symbol={el.symbol}
+                        name={el.name}
+                        category={el.category}
+                        // 🔧 FIX: use both search + category
+                        dimmed={!matchesSearch || !matchesCategory}
+                      />
+                    </div>
                   </div>
                 );
               })}
