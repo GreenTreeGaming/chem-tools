@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { elements } from "@/utils/elementsData";
 
-// ---------------- data / constants ----------------
+/* ---------------- constants ---------------- */
 const AW = new Map<string, number>(
   elements
     .filter((e) => typeof e.atomicWeight === "number")
     .map((e) => [e.symbol, e.atomicWeight as number])
 );
 
-// ---------------- parsing: formula ----------------
+/* ---------------- parsing: formula ---------------- */
 type Counts = Record<string, number>;
 const ELEMENT_RE = /[A-Z][a-z]?/y;
 const NUM_RE = /\d+/y;
@@ -19,14 +19,12 @@ function parseFormula(formula: string): Counts {
   const s = formula.replace(/\s+/g, "");
   const stack: Counts[] = [Object.create(null)];
   let i = 0;
-
   const add = (map: Counts, k: string, n: number) => {
     map[k] = (map[k] || 0) + n;
   };
 
   while (i < s.length) {
     const ch = s[i];
-
     if (ch === "(") {
       stack.push(Object.create(null));
       i++;
@@ -44,7 +42,6 @@ function parseFormula(formula: string): Counts {
       for (const [el, cnt] of Object.entries(group)) add(top, el, cnt * mult);
       continue;
     }
-
     if (ch === "·" || ch === ".") { i++; continue; }
 
     ELEMENT_RE.lastIndex = i;
@@ -59,10 +56,8 @@ function parseFormula(formula: string): Counts {
       add(stack[stack.length - 1], sym, mult);
       continue;
     }
-
     throw new Error(`Unexpected token '${ch}' in formula '${formula}'`);
   }
-
   if (stack.length !== 1) throw new Error("Mismatched parentheses");
   return stack[0];
 }
@@ -79,7 +74,7 @@ function molarMass(formula: string): { mm: number; missing: string[] } {
   return { mm: sum, missing };
 }
 
-// ---------------- parsing: equation ----------------
+/* ---------------- parsing: equation ---------------- */
 type Species = { coef: number; formula: string };
 
 function splitArrow(eq: string) {
@@ -90,8 +85,7 @@ function splitArrow(eq: string) {
 }
 
 function parseSide(side: string): Species[] {
-  return side
-    .split("+")
+  return side.split("+")
     .map((s) => s.trim())
     .filter(Boolean)
     .map((chunk) => {
@@ -109,7 +103,7 @@ function parseEquation(eq: string): { reactants: Species[]; products: Species[] 
   return { reactants, products };
 }
 
-// ---------------- numeric helpers ----------------
+/* ---------------- helpers ---------------- */
 const toNum = (s: string) => {
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : NaN;
@@ -122,23 +116,23 @@ const fmt = (x: number | null, digits = 4) =>
     ? x.toExponential(digits)
     : x.toFixed(digits);
 
-// ---------------- UI types ----------------
+/* ---------------- UI state types ---------------- */
 type AmountMol = { kind: "mol"; value: string; excess?: boolean };
 type AmountG = { kind: "g"; value: string; excess?: boolean };
 type AmountSolution = {
   kind: "solution";
-  molarity: string;    // M
-  volume: string;      // numeric
-  volUnit: "mL" | "L"; // unit
+  molarity: string;
+  volume: string;
+  volUnit: "mL" | "L";
   excess?: boolean;
 };
 type Amount = AmountMol | AmountG | AmountSolution;
 
-// ---------------- Component ----------------
+/* ---------------- Component ---------------- */
 export function LimitingReagentTool() {
   const [equation, setEquation] = useState("BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2");
 
-  // parse equation + MMs
+  // Parse eq + mm
   const parsed = useMemo(() => {
     try {
       const p = parseEquation(equation);
@@ -157,24 +151,23 @@ export function LimitingReagentTool() {
     if (!parsed.ok) return;
     setAmounts((prev) => {
       if (prev.length === parsed.reactMM.length) return prev;
-      // sensible defaults: first 2 as mol inputs
       return parsed.reactMM.map((_, i) =>
         i === 0
-          ? ({ kind: "mol", value: "0.00785" } as Amount) // e.g. BaCl2 case from example
-          : ({ kind: "mol", value: "", excess: i === 1 } as Amount) // mark 2nd as excess by default
+          ? ({ kind: "mol", value: "0.00785" } as Amount)
+          : ({ kind: "mol", value: "", excess: i === 1 } as Amount)
       );
     });
   }, [parsed.ok ? parsed.reactMM.length : 0]);
 
   // product + actual mass for percent yield
   const [targetIdx, setTargetIdx] = useState(0);
-  const [actualMass, setActualMass] = useState<string>(""); // g
+  const [actualMass, setActualMass] = useState<string>("");
   useEffect(() => {
     setTargetIdx(0);
     setActualMass("");
   }, [equation]);
 
-  // helpers to render & update one reactant block
+  // update one reactant
   function updateAmount(i: number, updater: (old: Amount) => Amount) {
     setAmounts((arr) => {
       const next = arr.slice();
@@ -183,7 +176,7 @@ export function LimitingReagentTool() {
     });
   }
 
-  // moles from an Amount (handles solution + units + excess)
+  // convert to moles
   function molesFromAmount(a: Amount, mm: number): number {
     if (a && "excess" in a && a.excess) return Number.POSITIVE_INFINITY;
     if (a?.kind === "mol") {
@@ -200,7 +193,7 @@ export function LimitingReagentTool() {
       const V = toNum(a.volume);
       if (!(Number.isFinite(M) && M >= 0 && Number.isFinite(V) && V >= 0)) return NaN;
       const L = a.volUnit === "mL" ? V / 1000 : V;
-      return M * L; // mol = M * L
+      return M * L;
     }
     return NaN;
   }
@@ -211,32 +204,27 @@ export function LimitingReagentTool() {
     const R = parsed.reactMM;
     if (amounts.length !== R.length) return null;
 
-    // Convert to moles (Infinity if marked as excess)
     const nReact = R.map((r, i) => molesFromAmount(amounts[i], r.mm));
     if (nReact.some((n) => !Number.isFinite(n) && n !== Number.POSITIVE_INFINITY)) return null;
 
-    // Candidates for extent; ignore Infinity (excess)
     const extentCandidates = R.map((r, i) => {
       const n = nReact[i];
       if (n === Number.POSITIVE_INFINITY) return Number.POSITIVE_INFINITY;
       return n / r.coef;
     });
 
-    // If all are Infinity, not enough info
     const finiteCandidates = extentCandidates.filter((x) => Number.isFinite(x));
     if (!finiteCandidates.length) return null;
 
-    const extent = Math.min(...finiteCandidates); // ξ (mol)
+    const extent = Math.min(...finiteCandidates);
     const limitingIndex = extentCandidates.indexOf(extent);
     const limiting = limitingIndex >= 0 ? R[limitingIndex] : null;
 
-    // Theoretical product (selected)
     const P = parsed.prodMM;
     const tgt = P[targetIdx] ?? P[0];
     const nProduct = extent * tgt.coef;
     const mProduct = nProduct * tgt.mm;
 
-    // Leftovers
     const leftovers = R.map((r, i) => {
       const n = nReact[i];
       if (n === Number.POSITIVE_INFINITY) {
@@ -252,10 +240,10 @@ export function LimitingReagentTool() {
       extent,
       product: { formula: tgt.formula, moles: nProduct, grams: mProduct },
       leftovers,
+      nReact,
     };
   }, [parsed, amounts, targetIdx]);
 
-  // percent yield (actual mass provided)
   const percentYield = useMemo(() => {
     if (!outcome) return null;
     const actual = toNum(actualMass);
@@ -265,7 +253,6 @@ export function LimitingReagentTool() {
     return (actual / theo) * 100;
   }, [outcome, actualMass]);
 
-  // errors
   const error =
     !parsed.ok
       ? parsed.error
@@ -276,24 +263,24 @@ export function LimitingReagentTool() {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="bg-indigo-600 px-4 py-3 text-white rounded-t-2xl">
-        <h2 className="text-lg font-semibold">Limiting Reagent & Percent Yield</h2>
-        <p className="text-sm opacity-90">
+      <div className="bg-indigo-600 px-6 py-4 text-white rounded-t-2xl">
+        <h2 className="text-xl font-bold">Limiting Reagent & Percent Yield</h2>
+        <p className="text-base opacity-90">
           Paste a <b>balanced</b> equation, choose reactant inputs (mol, g, or solution),
           pick a product, and optionally enter the actual product mass to calculate percent yield.
         </p>
       </div>
 
-      <div className="p-4 sm:p-6">
+      <div className="p-6">
         {/* Equation */}
         <div className="mt-4 grid gap-3">
-          <label className="text-sm">
-            <span className="block text-gray-600 mb-1">Balanced equation</span>
+          <label className="text-base">
+            <span className="block text-gray-700 mb-1">Balanced equation</span>
             <input
               value={equation}
               onChange={(e) => setEquation(e.target.value)}
               placeholder="e.g., BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2"
-              className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+              className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-base shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
             />
           </label>
         </div>
@@ -303,7 +290,7 @@ export function LimitingReagentTool() {
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {/* Reactants */}
             <div>
-              <h3 className="text-base font-semibold">Reactants</h3>
+              <h3 className="text-lg font-semibold text-gray-800">Reactants</h3>
               <div className="mt-2 grid gap-2">
                 {parsed.reactMM.map((r, i) => {
                   const a = amounts[i] as Amount | undefined;
@@ -311,10 +298,8 @@ export function LimitingReagentTool() {
                   return (
                     <div key={`${r.coef}-${r.formula}-${i}`} className="rounded-xl border border-gray-200 p-3">
                       <div className="flex items-center justify-between">
-                        <div className="text-sm font-medium">
-                          {r.coef !== 1 ? `${r.coef} ` : ""}{r.formula}
-                        </div>
-                        <div className="text-xs text-gray-500">M = {fmt(r.mm, 4)} g/mol</div>
+                        <div className="text-base font-medium">{r.coef !== 1 ? `${r.coef} ` : ""}{r.formula}</div>
+                        <div className="text-sm text-gray-500">M = {fmt(r.mm, 4)} g/mol</div>
                       </div>
 
                       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -482,7 +467,7 @@ export function LimitingReagentTool() {
         )}
 
         {/* Results */}
-        <div className="mt-5">
+        <div className="mt-6">
           {error && (
             <div className="rounded-xl bg-amber-600 p-3 text-sm text-white">
               {error}
@@ -526,7 +511,7 @@ export function LimitingReagentTool() {
 
               {/* Leftovers */}
               <div className="mt-4">
-                <h4 className="text-sm font-semibold text-gray-700">
+                <h4 className="text-lg font-semibold text-gray-800 mt-4">
                   Excess Reactants (Leftover)
                 </h4>
                 <ul className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -548,6 +533,89 @@ export function LimitingReagentTool() {
             </>
           )}
         </div>
+
+        {/* --- Show Work --- */}
+        {parsed.ok && outcome && (
+          <details className="mt-6 text-lg text-gray-800">
+            <summary className="cursor-pointer select-none font-semibold">
+              Show Calculation Steps
+            </summary>
+            <div className="mt-4 space-y-4 leading-relaxed">
+              <div>
+                <b>Step 1:</b> Convert each reactant to moles.
+                {parsed.reactMM.map((r, i) => {
+                  const a = amounts[i];
+                  const n = outcome.nReact?.[i];
+                  if (!a) return null;
+                  if (a.kind === "g") {
+                    return (
+                      <p key={i}>
+                        {r.formula}: n = m / M = {a.value} ÷ {fmt(r.mm, 3)} ={" "}
+                        <b>{fmt(n, 4)} mol</b>
+                      </p>
+                    );
+                  }
+                  if (a.kind === "mol") {
+                    return (
+                      <p key={i}>
+                        {r.formula}: given directly = <b>{a.value || "—"} mol</b>
+                      </p>
+                    );
+                  }
+                  if (a.kind === "solution") {
+                    return (
+                      <p key={i}>
+                        {r.formula}: n = M × V = {a.molarity} × {a.volume}
+                        {a.volUnit} → <b>{fmt(n, 4)} mol</b>
+                      </p>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+
+              <div>
+                <b>Step 2:</b> Compute possible reaction extent ξ = nᵢ / νᵢ.  
+                {parsed.reactMM.map((r, i) => {
+                  const n = outcome.nReact?.[i];
+                  if (!Number.isFinite(n)) return null;
+                  return (
+                    <p key={i}>
+                      For {r.formula}: ξ = {fmt(n, 4)} ÷ {r.coef} ={" "}
+                      <b>{fmt(n / r.coef, 4)} mol</b>
+                    </p>
+                  );
+                })}
+              </div>
+
+              <div>
+                <b>Step 3:</b> Limiting reagent is{" "}
+                <b>{outcome.limiting?.formula || "—"}</b> since it gives the
+                smallest ξ = <b>{fmt(outcome.extent, 4)}</b>.
+              </div>
+
+              <div>
+                <b>Step 4:</b> Theoretical yield.  
+                n = ξ × ν<sub>{outcome.product.formula}</sub> ={" "}
+                {fmt(outcome.extent, 4)} × {parsed.prodMM[targetIdx]?.coef} ={" "}
+                <b>{fmt(outcome.product.moles, 4)} mol</b>.  
+                Mass = n × M = {fmt(outcome.product.moles, 4)} ×{" "}
+                {fmt(parsed.prodMM[targetIdx]?.mm, 3)} ={" "}
+                <b>{fmt(outcome.product.grams, 4)} g</b>.
+              </div>
+
+              <div>
+                <b>Step 5:</b> Percent yield = (actual ÷ theoretical) × 100.{" "} 
+                {actualMass
+                  ? `${actualMass} ÷ ${fmt(outcome.product.grams, 4)} × 100 = ${fmt(
+                      percentYield,
+                      2
+                    )}%`
+                  : "Enter actual mass to compute."}
+              </div>
+            </div>
+          </details>
+        )}
 
         {/* Examples */}
         <div className="mt-6">

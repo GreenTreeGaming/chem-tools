@@ -42,24 +42,25 @@ export function EquationBalancer() {
   const errorColor = CATEGORY_META["halogen"];
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+    <div className="rounded-2xl border border-gray-200 bg-white shadow-md overflow-hidden">
       {/* Header */}
-      <div className={`${headerColor.bg} ${headerColor.text} px-4 py-3`}>
-        <h2 className="text-lg font-semibold">Equation Balancer</h2>
-        <p className="text-sm opacity-90">
+      <div className={`${headerColor.bg} ${headerColor.text} px-6 py-4`}>
+        <h2 className="text-xl font-bold">Equation Balancer</h2>
+        <p className="text-base opacity-90">
           Paste an unbalanced equation like <code>Fe + O₂ → Fe₂O₃</code>.  
-          Use <code className="mx-1">+</code> for species, <code className="mx-1">→</code> / <code>-&gt;</code> for arrows.
+          Use <code className="mx-1">+</code> for species, <code className="mx-1">→</code> or <code>-&gt;</code> for arrows.
         </p>
       </div>
 
-      <div className="p-4 sm:p-6 grid gap-3">
+      <div className="p-6 grid gap-4">
+        {/* Input */}
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           rows={2}
           placeholder="e.g., C3H8 + O2 -> CO2 + H2O"
           spellCheck={false}
-          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-lg shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
         />
 
         {/* Example buttons */}
@@ -71,7 +72,7 @@ export function EquationBalancer() {
                 key={ex}
                 onClick={() => setInput(ex)}
                 type="button"
-                className={`rounded-lg px-3 py-1 text-xs font-medium ${palette.bg} ${palette.text} ${palette.ring} shadow-sm`}
+                className={`rounded-lg px-3 py-1 text-sm font-medium ${palette.bg} ${palette.text} ${palette.ring} shadow-sm`}
               >
                 {ex}
               </button>
@@ -84,7 +85,7 @@ export function EquationBalancer() {
           <button
             onClick={handleBalance}
             type="button"
-            className={`inline-flex items-center justify-center rounded-xl ${headerColor.bg} ${headerColor.text} px-4 py-2 text-sm font-medium shadow-sm transition hover:${headerColor.ring}`}
+            className={`inline-flex items-center justify-center rounded-xl ${headerColor.bg} ${headerColor.text} px-5 py-2 text-base font-semibold shadow-sm transition hover:${headerColor.ring}`}
           >
             Balance
           </button>
@@ -95,7 +96,7 @@ export function EquationBalancer() {
               setError(null);
             }}
             type="button"
-            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+            className="rounded-xl border border-gray-200 bg-white px-5 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50"
           >
             Clear
           </button>
@@ -104,16 +105,16 @@ export function EquationBalancer() {
         {/* Result */}
         {result && (
           <div
-            className={`mt-2 rounded-xl border ${successColor.ring} ${successColor.bg} ${successColor.text} p-3 text-sm shadow-sm`}
+            className={`mt-2 rounded-xl border ${successColor.ring} ${successColor.bg} ${successColor.text} p-4 text-lg font-medium shadow-sm`}
           >
-            <span className="font-medium">Balanced:</span> {result}
+            <span className="font-semibold">Balanced:</span> {result}
           </div>
         )}
 
         {/* Error */}
         {error && (
           <div
-            className={`mt-2 rounded-xl border ${errorColor.ring} ${errorColor.bg} ${errorColor.text} p-3 text-sm shadow-sm`}
+            className={`mt-2 rounded-xl border ${errorColor.ring} ${errorColor.bg} ${errorColor.text} p-4 text-lg font-medium shadow-sm`}
           >
             {error}
           </div>

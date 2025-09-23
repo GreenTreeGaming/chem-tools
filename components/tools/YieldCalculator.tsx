@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { elements } from "@/utils/elementsData";
 
-// ---------------- data / constants ----------------
+/* ---------------- constants ---------------- */
 const AW = new Map<string, number>(
   elements
     .filter((e) => typeof e.atomicWeight === "number")
     .map((e) => [e.symbol, e.atomicWeight as number])
 );
 
-// ---------------- parsing: formula ----------------
+/* ---------------- parsing: formula ---------------- */
 type Counts = Record<string, number>;
 const ELEMENT_RE = /[A-Z][a-z]?/y;
 const NUM_RE = /\d+/y;
@@ -19,14 +19,12 @@ function parseFormula(formula: string): Counts {
   const s = formula.replace(/\s+/g, "");
   const stack: Counts[] = [Object.create(null)];
   let i = 0;
-
   const add = (map: Counts, k: string, n: number) => {
     map[k] = (map[k] || 0) + n;
   };
 
   while (i < s.length) {
     const ch = s[i];
-
     if (ch === "(") {
       stack.push(Object.create(null));
       i++;
@@ -44,7 +42,6 @@ function parseFormula(formula: string): Counts {
       for (const [el, cnt] of Object.entries(group)) add(top, el, cnt * mult);
       continue;
     }
-
     if (ch === "·" || ch === ".") { i++; continue; }
 
     ELEMENT_RE.lastIndex = i;
@@ -59,10 +56,8 @@ function parseFormula(formula: string): Counts {
       add(stack[stack.length - 1], sym, mult);
       continue;
     }
-
     throw new Error(`Unexpected token '${ch}' in formula '${formula}'`);
   }
-
   if (stack.length !== 1) throw new Error("Mismatched parentheses");
   return stack[0];
 }
@@ -79,7 +74,7 @@ function molarMass(formula: string): { mm: number; missing: string[] } {
   return { mm: sum, missing };
 }
 
-// ---------------- parsing: equation ----------------
+/* ---------------- parsing: equation ---------------- */
 type Species = { coef: number; formula: string };
 
 function splitArrow(eq: string) {
@@ -90,8 +85,7 @@ function splitArrow(eq: string) {
 }
 
 function parseSide(side: string): Species[] {
-  return side
-    .split("+")
+  return side.split("+")
     .map((s) => s.trim())
     .filter(Boolean)
     .map((chunk) => {
@@ -109,7 +103,7 @@ function parseEquation(eq: string): { reactants: Species[]; products: Species[] 
   return { reactants, products };
 }
 
-// ---------------- numeric helpers ----------------
+/* ---------------- helpers ---------------- */
 const toNum = (s: string) => {
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : NaN;
@@ -122,22 +116,23 @@ const fmt = (x: number | null, digits = 4) =>
     ? x.toExponential(digits)
     : x.toFixed(digits);
 
-// ---------------- UI types ----------------
+/* ---------------- UI state types ---------------- */
 type AmountMol = { kind: "mol"; value: string; excess?: boolean };
 type AmountG = { kind: "g"; value: string; excess?: boolean };
 type AmountSolution = {
   kind: "solution";
-  molarity: string;    // M
-  volume: string;      // numeric
-  volUnit: "mL" | "L"; // unit
+  molarity: string;
+  volume: string;
+  volUnit: "mL" | "L";
   excess?: boolean;
 };
 type Amount = AmountMol | AmountG | AmountSolution;
 
-// ---------------- Component ----------------
+/* ---------------- Component ---------------- */
 export function YieldCalculator() {
   const [equation, setEquation] = useState("BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2");
 
+  // Parse eq + mm
   const parsed = useMemo(() => {
     try {
       const p = parseEquation(equation);
@@ -150,7 +145,7 @@ export function YieldCalculator() {
     }
   }, [equation]);
 
-  // reactant inputs
+  // per-reactant input state
   const [amounts, setAmounts] = useState<Amount[]>([]);
   useEffect(() => {
     if (!parsed.ok) return;
@@ -164,15 +159,15 @@ export function YieldCalculator() {
     });
   }, [parsed.ok ? parsed.reactMM.length : 0]);
 
-  // product & actual mass
+  // product + actual mass for percent yield
   const [targetIdx, setTargetIdx] = useState(0);
   const [actualMass, setActualMass] = useState<string>("");
-
   useEffect(() => {
     setTargetIdx(0);
     setActualMass("");
   }, [equation]);
 
+  // update one reactant
   function updateAmount(i: number, updater: (old: Amount) => Amount) {
     setAmounts((arr) => {
       const next = arr.slice();
@@ -181,7 +176,7 @@ export function YieldCalculator() {
     });
   }
 
-  // convert a reactant entry to moles (excess -> Infinity)
+  // convert to moles
   function molesFromAmount(a: Amount, mm: number): number {
     if (a && "excess" in a && a.excess) return Number.POSITIVE_INFINITY;
     if (a?.kind === "mol") {
@@ -203,7 +198,7 @@ export function YieldCalculator() {
     return NaN;
   }
 
-  // compute theoretical yield
+  // compute outcome
   const outcome = useMemo(() => {
     if (!parsed.ok) return null;
     const R = parsed.reactMM;
@@ -217,24 +212,43 @@ export function YieldCalculator() {
       if (n === Number.POSITIVE_INFINITY) return Number.POSITIVE_INFINITY;
       return n / r.coef;
     });
-    const finite = extentCandidates.filter((x) => Number.isFinite(x));
-    if (!finite.length) return null;
 
-    const extent = Math.min(...finite); // ξ
+    const finiteCandidates = extentCandidates.filter((x) => Number.isFinite(x));
+    if (!finiteCandidates.length) return null;
+
+    const extent = Math.min(...finiteCandidates);
+    const limitingIndex = extentCandidates.indexOf(extent);
+    const limiting = limitingIndex >= 0 ? R[limitingIndex] : null;
+
     const P = parsed.prodMM;
     const tgt = P[targetIdx] ?? P[0];
-
     const nProduct = extent * tgt.coef;
     const mProduct = nProduct * tgt.mm;
 
-    return { extent, product: { formula: tgt.formula, n: nProduct, m: mProduct } };
+    const leftovers = R.map((r, i) => {
+      const n = nReact[i];
+      if (n === Number.POSITIVE_INFINITY) {
+        return { formula: r.formula, nLeft: null as number | null, mLeft: null as number | null, excess: true };
+      }
+      const nUsed = extent * r.coef;
+      const nLeft = Math.max(0, n - nUsed);
+      return { formula: r.formula, nLeft, mLeft: nLeft * r.mm, excess: false };
+    });
+
+    return {
+      limiting: limiting ? { formula: limiting.formula, index: limitingIndex } : null,
+      extent,
+      product: { formula: tgt.formula, moles: nProduct, grams: mProduct },
+      leftovers,
+      nReact,
+    };
   }, [parsed, amounts, targetIdx]);
 
   const percentYield = useMemo(() => {
     if (!outcome) return null;
     const actual = toNum(actualMass);
     if (!Number.isFinite(actual) || actual < 0) return null;
-    const theo = outcome.product.m;
+    const theo = outcome.product.grams;
     if (!(Number.isFinite(theo) && theo > 0)) return null;
     return (actual / theo) * 100;
   }, [outcome, actualMass]);
@@ -246,37 +260,38 @@ export function YieldCalculator() {
       ? `Missing atomic weights for: ${parsed.missing.join(", ")}`
       : null;
 
+  /* ---------------- UI ---------------- */
   return (
     <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="bg-purple-600 px-4 py-3 text-white rounded-t-2xl">
-        <h2 className="text-lg font-semibold">Theoretical Yield & Percent Yield</h2>
-        <p className="text-sm opacity-90">
-          Paste a <b>balanced</b> equation, enter reactant amounts (mol, g, or solution),
-          pick a product, and optionally enter actual mass to compute percent yield.
+      <div className="bg-purple-700 px-6 py-4 text-white rounded-t-2xl">
+        <h2 className="text-xl font-bold">Theoretical Yield & Percent Yield</h2>
+        <p className="text-base opacity-90">
+          Paste a <b>balanced</b> equation, choose reactant inputs (mol, g, or solution),
+          pick a product, and optionally enter the actual product mass to calculate percent yield.
         </p>
       </div>
 
-      <div className="p-4 sm:p-6">
+      <div className="p-6">
         {/* Equation */}
         <div className="mt-4 grid gap-3">
-          <label className="text-sm">
-            <span className="block text-gray-600 mb-1">Balanced equation</span>
+          <label className="text-base">
+            <span className="block text-gray-700 mb-1">Balanced equation</span>
             <input
               value={equation}
               onChange={(e) => setEquation(e.target.value)}
               placeholder="e.g., BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2"
-              className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200"
+              className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-base shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200"
             />
           </label>
         </div>
 
-        {/* Reactants + Product selection */}
+        {/* Reactants + Products */}
         {parsed.ok && (
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {/* Reactants */}
             <div>
-              <h3 className="text-base font-semibold">Reactants</h3>
+              <h3 className="text-lg font-semibold text-gray-800">Reactants</h3>
               <div className="mt-2 grid gap-2">
                 {parsed.reactMM.map((r, i) => {
                   const a = amounts[i] as Amount | undefined;
@@ -284,19 +299,18 @@ export function YieldCalculator() {
                   return (
                     <div key={`${r.coef}-${r.formula}-${i}`} className="rounded-xl border border-gray-200 p-3">
                       <div className="flex items-center justify-between">
-                        <div className="text-sm font-medium">
-                          {r.coef !== 1 ? `${r.coef} ` : ""}{r.formula}
-                        </div>
-                        <div className="text-xs text-gray-500">M = {fmt(r.mm, 4)} g/mol</div>
+                        <div className="text-base font-medium">{r.coef !== 1 ? `${r.coef} ` : ""}{r.formula}</div>
+                        <div className="text-sm text-gray-500">M = {fmt(r.mm, 4)} g/mol</div>
                       </div>
 
                       <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {/* input type */}
                         <select
                           value={kind}
                           onChange={(e) => {
                             const k = e.target.value as Amount["kind"];
-                            const ex = (a as any)?.excess ?? false;
-                            updateAmount(i, () => {
+                            updateAmount(i, (old) => {
+                              const ex = (old as any)?.excess ?? false;
                               if (k === "mol") return { kind: "mol", value: "", excess: ex };
                               if (k === "g") return { kind: "g", value: "", excess: ex };
                               return { kind: "solution", molarity: "", volume: "", volUnit: "mL", excess: ex };
@@ -309,6 +323,7 @@ export function YieldCalculator() {
                           <option value="solution">solution (M & volume)</option>
                         </select>
 
+                        {/* mark as excess */}
                         <label className="ml-auto flex items-center gap-2 text-xs">
                           <input
                             type="checkbox"
@@ -322,6 +337,7 @@ export function YieldCalculator() {
                         </label>
                       </div>
 
+                      {/* input fields */}
                       <div className="mt-2 grid gap-2 sm:grid-cols-2">
                         {kind === "mol" && (
                           <label className="text-sm">
@@ -332,7 +348,7 @@ export function YieldCalculator() {
                               value={(a as AmountMol)?.value ?? ""}
                               onChange={(e) => updateAmount(i, (old) => ({ ...(old as AmountMol), value: e.target.value }))}
                               className={`w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200
-                                ${(a as any)?.excess ? "bg-gray-100 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
+                                ${(a as any)?.excess ? "bg-gray-50 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
                             />
                           </label>
                         )}
@@ -346,7 +362,7 @@ export function YieldCalculator() {
                               value={(a as AmountG)?.value ?? ""}
                               onChange={(e) => updateAmount(i, (old) => ({ ...(old as AmountG), value: e.target.value }))}
                               className={`w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200
-                                ${(a as any)?.excess ? "bg-gray-100 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
+                                ${(a as any)?.excess ? "bg-gray-50 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
                             />
                           </label>
                         )}
@@ -363,7 +379,7 @@ export function YieldCalculator() {
                                   updateAmount(i, (old) => ({ ...(old as AmountSolution), molarity: e.target.value }))
                                 }
                                 className={`w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200
-                                  ${(a as any)?.excess ? "bg-gray-100 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
+                                  ${(a as any)?.excess ? "bg-gray-50 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
                               />
                             </label>
                             <div className="grid grid-cols-[1fr_auto] gap-2">
@@ -376,8 +392,7 @@ export function YieldCalculator() {
                                   onChange={(e) =>
                                     updateAmount(i, (old) => ({ ...(old as AmountSolution), volume: e.target.value }))
                                   }
-                                  className={`w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200
-                                    ${(a as any)?.excess ? "bg-gray-100 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
+                                  className={`w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200 ${(a as any)?.excess ? "bg-gray-50 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
                                 />
                               </label>
                               <label className="text-sm">
@@ -389,7 +404,7 @@ export function YieldCalculator() {
                                     updateAmount(i, (old) => ({ ...(old as AmountSolution), volUnit: e.target.value as "mL" | "L" }))
                                   }
                                   className={`mt-6 rounded-xl border px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200
-                                    ${(a as any)?.excess ? "bg-gray-100 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
+                                    ${(a as any)?.excess ? "bg-gray-50 border-gray-200 text-gray-500" : "bg-white border-gray-300"}`}
                                 >
                                   <option value="mL">mL</option>
                                   <option value="L">L</option>
@@ -405,9 +420,9 @@ export function YieldCalculator() {
               </div>
             </div>
 
-            {/* Products & actual mass */}
+            {/* Products */}
             <div>
-              <h3 className="text-base font-semibold">Product</h3>
+              <h3 className="text-base font-semibold">Products</h3>
               <div className="mt-2 grid gap-2">
                 {parsed.prodMM.map((p, i) => (
                   <div key={`${p.coef}-${p.formula}-${i}`} className="rounded-xl border border-gray-200 p-3">
@@ -427,7 +442,7 @@ export function YieldCalculator() {
                     onChange={(e) => setTargetIdx(parseInt(e.target.value, 10))}
                     className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200"
                   >
-                    {parsed.products?.map((p, i) => (
+                    {parsed.prodMM.map((p, i) => (
                       <option key={i} value={i}>
                         {p.formula}
                       </option>
@@ -440,7 +455,7 @@ export function YieldCalculator() {
                   <input
                     value={actualMass}
                     onChange={(e) => setActualMass(e.target.value)}
-                    placeholder="optional, e.g., 1.82"
+                    placeholder="e.g., 1.82"
                     className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200"
                   />
                 </label>
@@ -450,23 +465,41 @@ export function YieldCalculator() {
         )}
 
         {/* Results */}
-        <div className="mt-5">
+        <div className="mt-6">
           {error && (
-            <div className="rounded-xl bg-red-500 p-3 text-sm text-white">
+            <div className="rounded-xl bg-red-600 p-3 text-sm text-white">
               {error}
             </div>
           )}
 
-          {parsed.ok && !parsed.missing.length && outcome && (
+          {parsed.ok && !error && outcome && (
             <>
               <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-xl bg-purple-600 p-3 text-white md:col-span-2">
-                  <div className="text-xs opacity-80">Theoretical Yield ({outcome.product.formula})</div>
+                <div className="rounded-xl bg-indigo-600 p-3 text-white">
+                  <div className="text-xs opacity-80">Limiting Reagent</div>
                   <div className="text-sm font-semibold">
-                    {fmt(outcome.product.n, 6)} mol • {fmt(outcome.product.m, 4)} g
+                    {outcome.limiting ? outcome.limiting.formula : "—"}
                   </div>
                 </div>
-                <div className="rounded-xl bg-emerald-600 p-3 text-white">
+                <div className="rounded-xl bg-blue-600 p-3 text-white">
+                  <div className="text-xs opacity-80">Reaction Extent (ξ)</div>
+                  <div className="text-sm font-semibold">
+                    {fmt(outcome.extent, 6)} mol
+                  </div>
+                </div>
+                <div className="rounded-xl bg-purple-600 p-3 text-white">
+                  <div className="text-xs opacity-80">
+                    Theoretical Yield ({outcome.product.formula})
+                  </div>
+                  <div className="text-sm font-semibold">
+                    {fmt(outcome.product.moles, 6)} mol • {fmt(outcome.product.grams, 4)} g
+                  </div>
+                </div>
+              </div>
+
+              {/* Percent yield */}
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <div className="rounded-xl bg-emerald-600 p-3 text-white md:col-span-3">
                   <div className="text-xs opacity-80">Percent Yield</div>
                   <div className="text-sm font-semibold">
                     {percentYield === null ? "—" : `${fmt(percentYield, 2)} %`}
@@ -474,13 +507,113 @@ export function YieldCalculator() {
                 </div>
               </div>
 
-              <p className="mt-3 text-xs text-gray-500">
-                Theoretical yield is computed from the limiting reagent via stoichiometry.
-                Enter actual mass to compute percent yield.
-              </p>
+              {/* Leftovers */}
+              <div className="mt-4">
+                <h4 className="text-lg font-semibold text-gray-800 mt-4">
+                  Excess Reactants (Leftover)
+                </h4>
+                <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {outcome.leftovers.map((x) => (
+                    <li
+                      key={x.formula}
+                      className="rounded-lg bg-gray-700 text-white p-3"
+                    >
+                      <div className="text-sm font-medium">{x.formula}</div>
+                      <div className="text-xs opacity-80">
+                        {x.excess
+                          ? "treated as excess"
+                          : `${fmt(x.nLeft, 6)} mol • ${fmt(x.mLeft, 4)} g remaining`}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </>
           )}
         </div>
+
+        {/* --- Show Work --- */}
+        {parsed.ok && outcome && (
+          <details className="mt-6 text-lg text-gray-800">
+            <summary className="cursor-pointer select-none font-semibold">
+              Show Calculation Steps
+            </summary>
+            <div className="mt-4 space-y-4 leading-relaxed">
+              <div>
+                <b>Step 1:</b> Convert each reactant to moles.
+                {parsed.reactMM.map((r, i) => {
+                  const a = amounts[i];
+                  const n = outcome.nReact?.[i];
+                  if (!a) return null;
+                  if (a.kind === "g") {
+                    return (
+                      <p key={i}>
+                        {r.formula}: n = m / M = {a.value} ÷ {fmt(r.mm, 3)} ={" "}
+                        <b>{fmt(n, 4)} mol</b>
+                      </p>
+                    );
+                  }
+                  if (a.kind === "mol") {
+                    return (
+                      <p key={i}>
+                        {r.formula}: given directly = <b>{a.value || "—"} mol</b>
+                      </p>
+                    );
+                  }
+                  if (a.kind === "solution") {
+                    return (
+                      <p key={i}>
+                        {r.formula}: n = M × V = {a.molarity} × {a.volume}
+                        {a.volUnit} → <b>{fmt(n, 4)} mol</b>
+                      </p>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+
+              <div>
+                <b>Step 2:</b> Compute possible reaction extent ξ = nᵢ / νᵢ.  
+                {parsed.reactMM.map((r, i) => {
+                  const n = outcome.nReact?.[i];
+                  if (!Number.isFinite(n)) return null;
+                  return (
+                    <p key={i}>
+                      For {r.formula}: ξ = {fmt(n, 4)} ÷ {r.coef} ={" "}
+                      <b>{fmt(n / r.coef, 4)} mol</b>
+                    </p>
+                  );
+                })}
+              </div>
+
+              <div>
+                <b>Step 3:</b> Limiting reagent is{" "}
+                <b>{outcome.limiting?.formula || "—"}</b> since it gives the
+                smallest ξ = <b>{fmt(outcome.extent, 4)}</b>.
+              </div>
+
+              <div>
+                <b>Step 4:</b> Theoretical yield.  
+                n = ξ × ν<sub>{outcome.product.formula}</sub> ={" "}
+                {fmt(outcome.extent, 4)} × {parsed.prodMM[targetIdx]?.coef} ={" "}
+                <b>{fmt(outcome.product.moles, 4)} mol</b>.  
+                Mass = n × M = {fmt(outcome.product.moles, 4)} ×{" "}
+                {fmt(parsed.prodMM[targetIdx]?.mm, 3)} ={" "}
+                <b>{fmt(outcome.product.grams, 4)} g</b>.
+              </div>
+
+              <div>
+                <b>Step 5:</b> Percent yield = (actual ÷ theoretical) × 100.{" "}
+                {actualMass
+                  ? `${actualMass} ÷ ${fmt(outcome.product.grams, 4)} × 100 = ${fmt(
+                      percentYield,
+                      2
+                    )}%`
+                  : "Enter actual mass to compute."}
+              </div>
+            </div>
+          </details>
+        )}
 
         {/* Examples */}
         <div className="mt-6">
@@ -488,30 +621,23 @@ export function YieldCalculator() {
             <summary className="cursor-pointer select-none">Examples</summary>
             <ul className="ml-4 mt-2 list-disc space-y-1">
               <li>
-                <button
-                  className="underline hover:text-purple-600"
-                  onClick={() => setEquation("BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2")}
-                  type="button"
-                >
+                <button className="underline hover:text-purple-600" onClick={() => setEquation("BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2")} type="button">
                   BaCl2 + 2 AgNO3 -> 2 AgCl + Ba(NO3)2
                 </button>
               </li>
               <li>
-                <button
-                  className="underline hover:text-purple-600"
-                  onClick={() => setEquation("2 H2 + O2 -> 2 H2O")}
-                  type="button"
-                >
+                <button className="underline hover:text-purple-600" onClick={() => setEquation("2 H2 + O2 -> 2 H2O")} type="button">
                   2 H2 + O2 -> 2 H2O
                 </button>
               </li>
               <li>
-                <button
-                  className="underline hover:text-purple-600"
-                  onClick={() => setEquation("C3H8 + 5 O2 -> 3 CO2 + 4 H2O")}
-                  type="button"
-                >
+                <button className="underline hover:text-purple-600" onClick={() => setEquation("C3H8 + 5 O2 -> 3 CO2 + 4 H2O")} type="button">
                   C3H8 + 5 O2 -> 3 CO2 + 4 H2O
+                </button>
+              </li>
+              <li>
+                <button className="underline hover:text-purple-600" onClick={() => setEquation("2 Al + 3 Cl2 -> 2 AlCl3")} type="button">
+                  2 Al + 3 Cl2 -> 2 AlCl3
                 </button>
               </li>
             </ul>

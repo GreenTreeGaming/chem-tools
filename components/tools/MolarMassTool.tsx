@@ -20,64 +20,20 @@ function parseFormula(formula: string): { [symbol: string]: number } | null {
 
 // strong palette by element type
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; ring: string }> = {
-  "alkali metal": {
-    bg: "bg-yellow-400",
-    text: "text-white",
-    ring: "ring-yellow-600",
-  },
-  "alkaline earth metal": {
-    bg: "bg-green-500",
-    text: "text-white",
-    ring: "ring-green-700",
-  },
-  "transition metal": {
-    bg: "bg-blue-500",
-    text: "text-white",
-    ring: "ring-blue-700",
-  },
-  "post-transition metal": {
-    bg: "bg-orange-500",
-    text: "text-white",
-    ring: "ring-orange-700",
-  },
-  metalloid: {
-    bg: "bg-purple-500",
-    text: "text-white",
-    ring: "ring-purple-700",
-  },
-  nonmetal: {
-    bg: "bg-pink-500",
-    text: "text-white",
-    ring: "ring-pink-700",
-  },
-  halogen: {
-    bg: "bg-red-500",
-    text: "text-white",
-    ring: "ring-red-700",
-  },
-  "noble gas": {
-    bg: "bg-indigo-500",
-    text: "text-white",
-    ring: "ring-indigo-700",
-  },
-  lanthanide: {
-    bg: "bg-teal-500",
-    text: "text-white",
-    ring: "ring-teal-700",
-  },
-  actinide: {
-    bg: "bg-cyan-500",
-    text: "text-white",
-    ring: "ring-cyan-700",
-  },
+  "alkali metal": { bg: "bg-yellow-400", text: "text-white", ring: "ring-yellow-600" },
+  "alkaline earth metal": { bg: "bg-green-500", text: "text-white", ring: "ring-green-700" },
+  "transition metal": { bg: "bg-blue-500", text: "text-white", ring: "ring-blue-700" },
+  "post-transition metal": { bg: "bg-orange-500", text: "text-white", ring: "ring-orange-700" },
+  metalloid: { bg: "bg-purple-500", text: "text-white", ring: "ring-purple-700" },
+  nonmetal: { bg: "bg-pink-500", text: "text-white", ring: "ring-pink-700" },
+  halogen: { bg: "bg-red-500", text: "text-white", ring: "ring-red-700" },
+  "noble gas": { bg: "bg-indigo-500", text: "text-white", ring: "ring-indigo-700" },
+  lanthanide: { bg: "bg-teal-500", text: "text-white", ring: "ring-teal-700" },
+  actinide: { bg: "bg-cyan-500", text: "text-white", ring: "ring-cyan-700" },
 };
 
 // fallback if category not found
-const DEFAULT_COLOR = {
-  bg: "bg-gray-400",
-  text: "text-white",
-  ring: "ring-gray-600",
-};
+const DEFAULT_COLOR = { bg: "bg-gray-400", text: "text-white", ring: "ring-gray-600" };
 
 export function MolarMassTool() {
   const [formula, setFormula] = useState("H2O");
@@ -85,10 +41,7 @@ export function MolarMassTool() {
   const { mass, breakdown } = useMemo(() => {
     const parsed = parseFormula(formula.trim());
     if (!parsed)
-      return {
-        mass: null as number | null,
-        breakdown: [] as { sym: string; count: number; aw: number; cat: string }[],
-      };
+      return { mass: null as number | null, breakdown: [] as { sym: string; count: number; aw: number; cat: string }[] };
 
     let total = 0;
     const lines: { sym: string; count: number; aw: number; cat: string }[] = [];
@@ -103,55 +56,82 @@ export function MolarMassTool() {
   }, [formula]);
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-      {/* Strong header */}
-      <div className="bg-indigo-600 text-white px-4 py-3">
-        <h2 className="text-lg font-semibold">Molar Mass Calculator</h2>
-        <p className="text-sm opacity-90">
+    <div className="rounded-2xl border border-gray-200 bg-white shadow-md overflow-hidden">
+      {/* Header */}
+      <div className="bg-indigo-600 text-white px-6 py-4">
+        <h2 className="text-xl font-bold">Molar Mass Calculator</h2>
+        <p className="text-base opacity-90">
           Enter a chemical formula (e.g., H₂O, C₆H₁₂O₆, NaCl)
         </p>
       </div>
 
-      <div className="p-4">
+      <div className="p-6 space-y-6">
+        {/* Input */}
         <input
           value={formula}
           onChange={(e) => setFormula(e.target.value)}
           placeholder="e.g., NaCl"
-          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
+          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-lg shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
         />
 
-        <div className="mt-4 text-sm">
-          <span className="text-gray-600">Molar mass:</span>{" "}
+        {/* Result */}
+        <div className="mt-2 text-lg">
+          <span className="font-medium text-gray-700">Molar mass:</span>{" "}
           <b className="text-indigo-700">
             {mass ? `${mass.toFixed(3)} g/mol` : "—"}
           </b>
         </div>
 
+        {/* Formula Reference */}
+        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-base text-gray-800">
+          <h4 className="font-bold mb-2">Formula</h4>
+          <p>Molar Mass = Σ (atomic weight × number of atoms)</p>
+        </div>
+
+        {/* Breakdown */}
         {breakdown.length > 0 && (
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          <ul className="mt-4 grid gap-4 sm:grid-cols-2">
             {breakdown.map((b, i) => {
               const color = CATEGORY_COLORS[b.cat] || DEFAULT_COLOR;
               return (
                 <li
                   key={i}
-                  className={`rounded-lg border p-3 shadow-sm ${color.bg} ${color.text} ${color.ring}`}
+                  className={`rounded-lg border p-4 shadow-sm ${color.bg} ${color.text} ${color.ring}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold">
+                    <span className="font-semibold text-lg">
                       {b.sym}
-                      <sub className="ml-0.5 text-xs opacity-80">{b.count}</sub>
+                      <sub className="ml-0.5 text-sm opacity-80">{b.count}</sub>
                     </span>
-                    <span className="text-xs opacity-90">
+                    <span className="text-sm opacity-90">
                       {b.aw.toFixed(3)} × {b.count}
                     </span>
                   </div>
-                  <div className="mt-1 text-xs opacity-90">
+                  <div className="mt-1 text-sm opacity-90">
                     Contribution: <b>{(b.aw * b.count).toFixed(3)}</b>
                   </div>
                 </li>
               );
             })}
           </ul>
+        )}
+
+        {/* Show Work */}
+        {mass && breakdown.length > 0 && (
+          <details className="mt-6 rounded-xl border border-gray-200 bg-white p-4 text-base">
+            <summary className="cursor-pointer font-semibold text-gray-800 text-lg">Show Work</summary>
+            <ul className="mt-2 space-y-2 text-gray-700 leading-relaxed">
+              {breakdown.map((b, i) => (
+                <li key={i}>
+                  {b.sym}
+                  <sub>{b.count}</sub>: {b.aw.toFixed(3)} × {b.count} = {(b.aw * b.count).toFixed(3)}
+                </li>
+              ))}
+              <li className="font-semibold">
+                Total = {mass.toFixed(3)} g/mol
+              </li>
+            </ul>
+          </details>
         )}
       </div>
     </div>

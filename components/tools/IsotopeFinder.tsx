@@ -214,8 +214,8 @@ export function IsotopeFinder() {
     <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
       {/* Header */}
       <div className="bg-blue-600 text-white px-4 py-3 rounded-t-2xl">
-        <h2 className="text-lg font-semibold">Isotope Finder</h2>
-        <p className="text-sm opacity-90">
+        <h2 className="text-2xl font-bold">Isotope Finder</h2>
+        <p className="text-base opacity-90">
           Search isotopes by element name/symbol or mass number.  
           Examples: <code>C-14</code>, <code>14C</code>, <code>Carbon-14</code>, <code>O-18</code>, <code>14</code>.
         </p>
@@ -227,18 +227,16 @@ export function IsotopeFinder() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="e.g., C-14 or Carbon-14 or 14"
-            className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-            aria-label="Search isotopes by element or mass number"
+            className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-base shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
           />
           <button
             type="button"
             onClick={() => setQuery("")}
-            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-50"
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-base text-gray-700 shadow-sm hover:bg-gray-50"
           >
             Clear
           </button>
         </div>
-
         {!iso && !error && (
           <div className="mt-4 text-sm text-gray-500">Loading isotopes dataset…</div>
         )}
