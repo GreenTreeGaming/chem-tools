@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { CATEGORY_META } from "@/utils/categoryMeta";
+import "katex/dist/katex.min.css";
+import { BlockMath, InlineMath } from "react-katex";
 
 function toNumber(s: string) {
   const n = parseFloat(s);
@@ -15,7 +17,6 @@ function fmt(x: number | null, digits = 3) {
 }
 
 export function MolarityTool() {
-  // Simple molarity (M = n / V)
   const [moles, setMoles] = useState("1");
   const [volume, setVolume] = useState("1");
   const [volUnit, setVolUnit] = useState<"L" | "mL">("L");
@@ -62,28 +63,36 @@ export function MolarityTool() {
       case "c1":
         if (v1L && _c2 !== null && v2L) {
           value = (_c2 * v2L) / v1L;
-          steps = `C₁ = (C₂ × V₂) ÷ V₁ = (${_c2} × ${fmt(v2L)}) ÷ ${fmt(v1L)} = ${fmt(value)} M`;
+          steps = String.raw`C_1 = \frac{C_2 \times V_2}{V_1} = \frac{${_c2} \times ${fmt(
+            v2L
+          )}}{${fmt(v1L)}} = ${fmt(value)}\ \text{M}`;
         }
         break;
       case "v1":
         if (_c1 !== null && _c2 !== null && _c1 > 0 && v2L !== null) {
           value = (_c2 * v2L) / _c1;
-          steps = `V₁ = (C₂ × V₂) ÷ C₁ = (${_c2} × ${fmt(v2L)}) ÷ ${_c1} = ${fmt(value)} L`;
+          steps = String.raw`V_1 = \frac{C_2 \times V_2}{C_1} = \frac{${_c2} \times ${fmt(
+            v2L
+          )}}{${_c1}} = ${fmt(value)}\ \text{L}`;
         }
         break;
       case "c2":
         if (_c1 !== null && v1L && v2L) {
           value = (_c1 * v1L) / v2L;
-          steps = `C₂ = (C₁ × V₁) ÷ V₂ = (${_c1} × ${fmt(v1L)}) ÷ ${fmt(v2L)} = ${fmt(value)} M`;
+          steps = String.raw`C_2 = \frac{C_1 \times V_1}{V_2} = \frac{${_c1} \times ${fmt(
+            v1L
+          )}}{${fmt(v2L)}} = ${fmt(value)}\ \text{M}`;
         }
         break;
       case "v2":
         if (_c2 !== null && _c1 !== null && _c2 > 0 && v1L !== null) {
           value = (_c1 * v1L) / _c2;
-          steps = `V₂ = (C₁ × V₁) ÷ C₂ = (${_c1} × ${fmt(v1L)}) ÷ ${_c2} = ${fmt(value)} L`;
+          steps = String.raw`V_2 = \frac{C_1 \times V_1}{C_2} = \frac{${_c1} \times ${fmt(
+            v1L
+          )}}{${_c2}} = ${fmt(value)}\ \text{L}`;
         }
         break;
-    }
+      }
     return { field: blank, value, steps };
   }, [c1, v1, c2, v2, vUnitDil]);
 
@@ -95,8 +104,12 @@ export function MolarityTool() {
     <div className="rounded-2xl border border-gray-200 bg-white shadow-md overflow-hidden">
       {/* Header */}
       <div className={`${molarityColor.bg} ${molarityColor.text} px-6 py-4`}>
-        <h2 className="text-xl font-bold">Molarity & Dilution Calculator</h2>
-        <p className="text-base opacity-90">Compute solutions with <b>M = n/V</b> and <b>C₁V₁ = C₂V₂</b></p>
+        <h2>Molarity & Dilution Calculator</h2>
+        <p>
+          Compute solutions with{" "}
+          <InlineMath math="M = \frac{n}{V}" /> and{" "}
+          <InlineMath math="C_1 V_1 = C_2 V_2" />
+        </p>
       </div>
 
       <div className="p-6 space-y-6">
@@ -141,19 +154,29 @@ export function MolarityTool() {
         </div>
 
         <div className="mt-4 text-lg">
-          <span className="font-medium text-gray-700">Molarity:</span>{" "}
-          <b className={molarityError ? "text-red-600" : molarityColor.bg.replace("bg-", "text-")}>
-            {molarityError ? "—" : `${fmt(molarity)} M`}
-          </b>
+          <div>
+            <span>Molarity: </span>
+            {molarity !== null ? (
+              <InlineMath math={`${fmt(molarity)}\\ \\text{M}`} />
+            ) : (
+              "—"
+            )}
+          </div>
         </div>
 
         {/* Formula Reference */}
         <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-base text-gray-800">
-          <h4 className="font-bold mb-2">Formulas</h4>
-          <ul className="space-y-2 leading-relaxed">
-            <li><b>Molarity (M):</b> M = n ÷ V</li>
-            <li><b>Dilution:</b> C₁V₁ = C₂V₂</li>
-          </ul>
+          <div>
+            <h4>Formulas</h4>
+            <ul>
+              <li>
+                <BlockMath math="M = \frac{n}{V}" />
+              </li>
+              <li>
+                <BlockMath math="C_1 V_1 = C_2 V_2" />
+              </li>
+            </ul>
+          </div>
         </div>
 
         <hr className="my-6 border-dashed" />
@@ -214,14 +237,16 @@ export function MolarityTool() {
         <div className="mt-4 text-lg">
           {dilution.field ? (
             <>
-              <span className="font-medium text-gray-700">{dilution.field.toUpperCase()} = </span>
-              <b className={dilutionColor.bg.replace("bg-", "text-")}>
-                {dilution.value === null
-                  ? "—"
-                  : dilution.field.startsWith("v")
-                  ? `${fmt(vUnitDil === "L" ? dilution.value : dilution.value! * 1000)} ${vUnitDil}`
-                  : `${fmt(dilution.value)} M`}
-              </b>
+              <span>{dilution.field.toUpperCase()} = </span>
+              <InlineMath
+                math={
+                  dilution.field.startsWith("v")
+                    ? `${fmt(
+                        vUnitDil === "L" ? dilution.value : dilution.value! * 1000
+                      )}\\ ${vUnitDil}`
+                    : `${fmt(dilution.value)}\\ \\text{M}`
+                }
+              />
             </>
           ) : (
             <span className="text-gray-500">Enter three of C₁, V₁, C₂, V₂ (leave one blank).</span>
@@ -231,8 +256,59 @@ export function MolarityTool() {
         {/* Show Work */}
         {dilution.steps && (
           <details className="mt-4 rounded-xl border border-gray-200 bg-white p-4 text-base">
-            <summary className="cursor-pointer font-semibold text-gray-800 text-lg">Show Work</summary>
-            <p className="mt-2 text-gray-700 leading-relaxed">{dilution.steps}</p>
+            <summary className="cursor-pointer font-semibold text-gray-800 text-lg">
+              Show Work (with your inputs)
+            </summary>
+            <div className="mt-4 space-y-6">
+              {dilution.field === "c1" && (
+                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="font-medium text-gray-800">Step — Solve for C₁</div>
+                  <p className="text-sm text-gray-600">Rearrange C₁V₁ = C₂V₂ to isolate C₁:</p>
+                  <BlockMath
+                    math={dilution.steps.replace(
+                      /= ([^=]+) M$/,
+                      "\\Rightarrow \\\\mathbf{$1}\\ \\text{M}"
+                    )}
+                  />
+                </div>
+              )}
+              {dilution.field === "v1" && (
+                <div className="p-3 rounded-lg bg-green-50 border border-green-200">
+                  <div className="font-medium text-gray-800">Step — Solve for V₁</div>
+                  <p className="text-sm text-gray-600">Rearrange C₁V₁ = C₂V₂ to isolate V₁:</p>
+                  <BlockMath
+                    math={dilution.steps.replace(
+                      /= ([^=]+) L$/,
+                      "\\Rightarrow \\\\mathbf{$1}\\ \\text{L}"
+                    )}
+                  />
+                </div>
+              )}
+              {dilution.field === "c2" && (
+                <div className="p-3 rounded-lg bg-purple-50 border border-purple-200">
+                  <div className="font-medium text-gray-800">Step — Solve for C₂</div>
+                  <p className="text-sm text-gray-600">Rearrange C₁V₁ = C₂V₂ to isolate C₂:</p>
+                  <BlockMath
+                    math={dilution.steps.replace(
+                      /= ([^=]+) M$/,
+                      "\\Rightarrow \\\\mathbf{$1}\\ \\text{M}"
+                    )}
+                  />
+                </div>
+              )}
+              {dilution.field === "v2" && (
+                <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+                  <div className="font-medium text-gray-800">Step — Solve for V₂</div>
+                  <p className="text-sm text-gray-600">Rearrange C₁V₁ = C₂V₂ to isolate V₂:</p>
+                  <BlockMath
+                    math={dilution.steps.replace(
+                      /= ([^=]+) L$/,
+                      "\\Rightarrow \\\\mathbf{$1}\\ \\text{L}"
+                    )}
+                  />
+                </div>
+              )}
+            </div>
           </details>
         )}
 

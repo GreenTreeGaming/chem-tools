@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { CATEGORY_META } from "@/utils/categoryMeta";
 import type { ReactNode } from "react";
+import { BlockMath } from "react-katex";
 
 /**
  * ===========================
@@ -301,19 +302,15 @@ function balanceEquation(eq: string): ReactNode {
   const ints = coeffs.map((f) => Number(f.n));
 
   const fmtSide = (items: string[], offset: number) =>
-    items.map((s, idx) => {
-      const k = ints[offset + idx];
-      const coef = Math.abs(k);
-      return (
-        <span key={s + idx} className="mr-1">
-          {coef === 1 ? "" : <b>{coef}</b>} {s}
-        </span>
-      );
-    }).reduce((prev, curr) => [prev, " + ", curr] as any);
+    items
+      .map((s, idx) => {
+        const k = ints[offset + idx];
+        const coef = Math.abs(k);
+        return `${coef === 1 ? "" : coef} ${s}`;
+      })
+      .join(" + ");
 
-  return (
-    <>
-      {fmtSide(left, 0)} {" → "} {fmtSide(right, leftCount)}
-    </>
-  );
+  const latex = fmtSide(left, 0) + " \\; \\rightarrow \\; " + fmtSide(right, leftCount);
+
+  return <BlockMath math={latex} />;
 }

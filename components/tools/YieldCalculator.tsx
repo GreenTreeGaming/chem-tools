@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { elements } from "@/utils/elementsData";
+import "katex/dist/katex.min.css";
+import { BlockMath } from "react-katex";
 
 /* ---------------- constants ---------------- */
 const AW = new Map<string, number>(
@@ -538,78 +540,121 @@ export function YieldCalculator() {
             <summary className="cursor-pointer select-none font-semibold">
               Show Calculation Steps
             </summary>
-            <div className="mt-4 space-y-4 leading-relaxed">
-              <div>
-                <b>Step 1:</b> Convert each reactant to moles.
+            <div className="mt-4 space-y-5 leading-relaxed">
+              
+              {/* Step 1 */}
+              <div className="rounded-lg bg-gray-100 p-4">
+                <p className="font-medium">Step 1 — Convert each reactant to moles</p>
                 {parsed.reactMM.map((r, i) => {
                   const a = amounts[i];
                   const n = outcome.nReact?.[i];
                   if (!a) return null;
+
                   if (a.kind === "g") {
                     return (
-                      <p key={i}>
-                        {r.formula}: n = m / M = {a.value} ÷ {fmt(r.mm, 3)} ={" "}
-                        <b>{fmt(n, 4)} mol</b>
-                      </p>
+                      <BlockMath
+                        key={i}
+                        math={`n_{${r.formula}} = \\tfrac{m}{M} = \\tfrac{${a.value}}{${fmt(
+                          r.mm,
+                          3
+                        )}} \\;\\Rightarrow\\; \\mathbf{${fmt(n, 4)}\\ \\text{mol}}`}
+                      />
                     );
                   }
                   if (a.kind === "mol") {
                     return (
-                      <p key={i}>
-                        {r.formula}: given directly = <b>{a.value || "—"} mol</b>
-                      </p>
+                      <BlockMath
+                        key={i}
+                        math={`n_{${r.formula}} = ${a.value || "—"}\\ \\text{mol (given)}`}
+                      />
                     );
                   }
                   if (a.kind === "solution") {
                     return (
-                      <p key={i}>
-                        {r.formula}: n = M × V = {a.molarity} × {a.volume}
-                        {a.volUnit} → <b>{fmt(n, 4)} mol</b>
-                      </p>
+                      <BlockMath
+                        key={i}
+                        math={`n_{${r.formula}} = M \\times V = ${a.molarity}\\ \\text{M} \\times ${a.volume}\\ ${a.volUnit} \\;\\Rightarrow\\; \\mathbf{${fmt(
+                          n,
+                          4
+                        )}\\ \\text{mol}}`}
+                      />
                     );
                   }
                   return null;
                 })}
               </div>
 
-              <div>
-                <b>Step 2:</b> Compute possible reaction extent ξ = nᵢ / νᵢ.  
+              {/* Step 2 */}
+              <div className="rounded-lg bg-gray-100 p-4">
+                <p className="font-medium">Step 2 — Compute reaction extent for each reactant</p>
                 {parsed.reactMM.map((r, i) => {
                   const n = outcome.nReact?.[i];
                   if (!Number.isFinite(n)) return null;
                   return (
-                    <p key={i}>
-                      For {r.formula}: ξ = {fmt(n, 4)} ÷ {r.coef} ={" "}
-                      <b>{fmt(n / r.coef, 4)} mol</b>
-                    </p>
+                    <BlockMath
+                      key={i}
+                      math={`\\xi_{${r.formula}} = \\tfrac{n}{\\nu} = \\tfrac{${fmt(
+                        n,
+                        4
+                      )}}{${r.coef}} \\;\\Rightarrow\\; ${fmt(n / r.coef, 4)}\\ \\text{mol}`}
+                    />
                   );
                 })}
               </div>
 
-              <div>
-                <b>Step 3:</b> Limiting reagent is{" "}
-                <b>{outcome.limiting?.formula || "—"}</b> since it gives the
-                smallest ξ = <b>{fmt(outcome.extent, 4)}</b>.
+              {/* Step 3 */}
+              <div className="rounded-lg bg-yellow-100 p-4">
+                <p className="font-medium">Step 3 — Identify limiting reagent</p>
+                <BlockMath
+                  math={`\\text{Smallest }\\xi = ${fmt(
+                    outcome.extent,
+                    4
+                  )}\\ \\text{mol from } ${outcome.limiting?.formula}`}
+                />
+                <p className="mt-1">
+                  ⇒ Limiting reagent is <b>{outcome.limiting?.formula}</b>
+                </p>
               </div>
 
-              <div>
-                <b>Step 4:</b> Theoretical yield.  
-                n = ξ × ν<sub>{outcome.product.formula}</sub> ={" "}
-                {fmt(outcome.extent, 4)} × {parsed.prodMM[targetIdx]?.coef} ={" "}
-                <b>{fmt(outcome.product.moles, 4)} mol</b>.  
-                Mass = n × M = {fmt(outcome.product.moles, 4)} ×{" "}
-                {fmt(parsed.prodMM[targetIdx]?.mm, 3)} ={" "}
-                <b>{fmt(outcome.product.grams, 4)} g</b>.
+              {/* Step 4 */}
+              <div className="rounded-lg bg-green-100 p-4">
+                <p className="font-medium">Step 4 — Theoretical yield of product</p>
+                <BlockMath
+                  math={`n_{${outcome.product.formula}} = \\xi \\times \\nu = ${fmt(
+                    outcome.extent,
+                    4
+                  )} \\times ${parsed.prodMM[targetIdx]?.coef} \\;\\Rightarrow\\; \\mathbf{${fmt(
+                    outcome.product.moles,
+                    4
+                  )}\\ \\text{mol}}`}
+                />
+                <BlockMath
+                  math={`m = n \\times M = ${fmt(outcome.product.moles, 4)} \\times ${fmt(
+                    parsed.prodMM[targetIdx]?.mm,
+                    3
+                  )} \\;\\Rightarrow\\; \\mathbf{${fmt(
+                    outcome.product.grams,
+                    4
+                  )}\\ \\text{g}}`}
+                />
               </div>
 
-              <div>
-                <b>Step 5:</b> Percent yield = (actual ÷ theoretical) × 100.{" "}
-                {actualMass
-                  ? `${actualMass} ÷ ${fmt(outcome.product.grams, 4)} × 100 = ${fmt(
+              {/* Step 5 */}
+              <div className="rounded-lg bg-blue-100 p-4">
+                <p className="font-medium">Step 5 — Percent yield</p>
+                {actualMass ? (
+                  <BlockMath
+                    math={`\\%\\,\\text{yield} = \\tfrac{m_{actual}}{m_{theoretical}} \\times 100 = \\tfrac{${actualMass}}{${fmt(
+                      outcome.product.grams,
+                      4
+                    )}} \\times 100 \\;\\Rightarrow\\; \\mathbf{${fmt(
                       percentYield,
                       2
-                    )}%`
-                  : "Enter actual mass to compute."}
+                    )}\\ \\%}`}
+                  />
+                ) : (
+                  <p>Enter actual mass to compute percent yield.</p>
+                )}
               </div>
             </div>
           </details>

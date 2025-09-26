@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import "katex/dist/katex.min.css";
+import { BlockMath } from "react-katex";
 
 // helper
 const fmt = (x: number | null, digits = 6) =>
@@ -36,12 +38,24 @@ export function SolutionConcentrationTool() {
     const ppb = (mSolute / (mSolute + mSolvent)) * 1e9;
 
     const steps = {
-      moles: `${mSolute} g ÷ ${mm} g/mol = ${fmt(molesSolute, 6)} mol`,
-      kgSolvent: `${mSolvent} g ÷ 1000 = ${fmt(kgSolvent, 6)} kg`,
-      molality: `${fmt(molesSolute, 6)} mol ÷ ${fmt(kgSolvent, 6)} kg = ${fmt(molality, 6)} mol/kg`,
-      massPct: `(${mSolute} ÷ (${mSolute} + ${mSolvent})) × 100 = ${fmt(massPct, 6)} %`,
-      ppm: `(${mSolute} ÷ (${mSolute} + ${mSolvent})) × 1e6 = ${fmt(ppm, 6)}`,
-      ppb: `(${mSolute} ÷ (${mSolute} + ${mSolvent})) × 1e9 = ${fmt(ppb, 6)}`,
+      moles: String.raw`n = \frac{${mSolute}}{${mm}} = ${fmt(molesSolute, 6)}\ \text{mol}`,
+      kgSolvent: String.raw`${mSolvent}\ \text{g} \div 1000 = ${fmt(kgSolvent, 6)}\ \text{kg}`,
+      molality: String.raw`m = \frac{${fmt(molesSolute, 6)}}{${fmt(
+        kgSolvent,
+        6
+      )}} = \mathbf{${fmt(molality, 6)}}\ \text{mol/kg}`,
+      massPct: String.raw`\text{Mass\%} = \frac{${mSolute}}{${mSolute}+${mSolvent}} \times 100 = \mathbf{${fmt(
+        massPct,
+        6
+      )}}\ \%`,
+      ppm: String.raw`\text{ppm} = \frac{${mSolute}}{${mSolute}+${mSolvent}} \times 10^6 = \mathbf{${fmt(
+        ppm,
+        6
+      )}}`,
+      ppb: String.raw`\text{ppb} = \frac{${mSolute}}{${mSolute}+${mSolvent}} \times 10^9 = \mathbf{${fmt(
+        ppb,
+        6
+      )}}`,
     };
 
     return { molality, massPct, ppm, ppb, steps };
@@ -126,11 +140,11 @@ export function SolutionConcentrationTool() {
         <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800">
           <h3 className="font-bold text-base mb-2">Formulas</h3>
           <ul className="space-y-2 leading-relaxed">
-            <li><b>Moles of solute (n):</b> n = m<sub>solute</sub> ÷ M</li>
-            <li><b>Molality (m):</b> m = n ÷ (m<sub>solvent</sub> in kg)</li>
-            <li><b>Mass %:</b> (m<sub>solute</sub> ÷ (m<sub>solute</sub> + m<sub>solvent</sub>)) × 100</li>
-            <li><b>ppm:</b> (m<sub>solute</sub> ÷ (m<sub>solute</sub> + m<sub>solvent</sub>)) × 10⁶</li>
-            <li><b>ppb:</b> (m<sub>solute</sub> ÷ (m<sub>solute</sub> + m<sub>solvent</sub>)) × 10⁹</li>
+            <li><BlockMath math="n = \frac{m_{\text{solute}}}{M}" /></li>
+            <li><BlockMath math="m = \frac{n}{m_{\text{solvent}} \ (\text{kg})}" /></li>
+            <li><BlockMath math="\text{Mass\%} = \frac{m_{\text{solute}}}{m_{\text{solute}} + m_{\text{solvent}}} \times 100" /></li>
+            <li><BlockMath math="\text{ppm} = \frac{m_{\text{solute}}}{m_{\text{solute}} + m_{\text{solvent}}} \times 10^6" /></li>
+            <li><BlockMath math="\text{ppb} = \frac{m_{\text{solute}}}{m_{\text{solute}} + m_{\text{solvent}}} \times 10^9" /></li>
           </ul>
         </div>
 
@@ -140,14 +154,49 @@ export function SolutionConcentrationTool() {
             <summary className="cursor-pointer font-semibold text-gray-800 text-lg">
               Show Work (with your inputs)
             </summary>
-            <ul className="mt-3 space-y-2 text-gray-700 leading-relaxed">
-              <li><b>Moles of solute:</b> {results.steps.moles}</li>
-              <li><b>Kg of solvent:</b> {results.steps.kgSolvent}</li>
-              <li><b>Molality:</b> {results.steps.molality}</li>
-              <li><b>Mass %:</b> {results.steps.massPct}</li>
-              <li><b>ppm:</b> {results.steps.ppm}</li>
-              <li><b>ppb:</b> {results.steps.ppb}</li>
-            </ul>
+            <div className="mt-4 space-y-6">
+              {/* Step 1 */}
+              <div>
+                <div className="font-medium text-gray-800">Step 1 — Calculate moles of solute</div>
+                <p className="text-sm text-gray-600">Divide solute mass by its molar mass:</p>
+                <BlockMath math={results.steps.moles} />
+              </div>
+
+              {/* Step 2 */}
+              <div>
+                <div className="font-medium text-gray-800">Step 2 — Convert solvent mass to kilograms</div>
+                <p className="text-sm text-gray-600">Convert grams to kg by dividing by 1000:</p>
+                <BlockMath math={results.steps.kgSolvent} />
+              </div>
+
+              {/* Step 3 */}
+              <div className="p-3 rounded-lg bg-green-50 border border-green-200">
+                <div className="font-medium text-gray-800">Step 3 — Calculate Molality</div>
+                <p className="text-sm text-gray-600">Use the definition m = n / m<sub>solvent</sub>:</p>
+                <BlockMath math={results.steps.molality.replace("=", "\\Rightarrow")} />
+              </div>
+
+              {/* Step 4 */}
+              <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                <div className="font-medium text-gray-800">Step 4 — Calculate Mass %</div>
+                <p className="text-sm text-gray-600">Divide solute mass by total mass, then ×100:</p>
+                <BlockMath math={results.steps.massPct.replace("=", "\\Rightarrow")} />
+              </div>
+
+              {/* Step 5 */}
+              <div className="p-3 rounded-lg bg-purple-50 border border-purple-200">
+                <div className="font-medium text-gray-800">Step 5 — Calculate ppm</div>
+                <p className="text-sm text-gray-600">Same as Mass %, but multiply by 10⁶:</p>
+                <BlockMath math={results.steps.ppm.replace("=", "\\Rightarrow")} />
+              </div>
+
+              {/* Step 6 */}
+              <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+                <div className="font-medium text-gray-800">Step 6 — Calculate ppb</div>
+                <p className="text-sm text-gray-600">Same as Mass %, but multiply by 10⁹:</p>
+                <BlockMath math={results.steps.ppb.replace("=", "\\Rightarrow")} />
+              </div>
+            </div>
           </details>
         )}
 

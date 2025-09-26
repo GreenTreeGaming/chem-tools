@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { elements } from "@/utils/elementsData"; // atomic weights
+import "katex/dist/katex.min.css";
+import { BlockMath } from "react-katex";
 
 /* =============================
    CONSTANTS + LOOKUPS
@@ -25,14 +27,12 @@ function parseFormula(formula: string): Counts {
   const s = formula.replace(/\s+/g, "");
   const stack: Counts[] = [Object.create(null)];
   let i = 0;
-
   const add = (map: Counts, k: string, n: number) => {
     map[k] = (map[k] || 0) + n;
   };
 
   while (i < s.length) {
     const ch = s[i];
-
     if (ch === "(") {
       stack.push(Object.create(null));
       i++;
@@ -44,16 +44,13 @@ function parseFormula(formula: string): Counts {
       const m = NUM_RE.exec(s);
       const mult = m ? parseInt(m[0], 10) : 1;
       if (m) i = NUM_RE.lastIndex;
-
       const group = stack.pop();
       if (!group) throw new Error("Mismatched parentheses");
       const top = stack[stack.length - 1];
       for (const [el, cnt] of Object.entries(group)) add(top, el, cnt * mult);
       continue;
     }
-
-    if (ch === "·" || ch === ".") { i++; continue; } // hydrate dot
-
+    if (ch === "·" || ch === ".") { i++; continue; }
     ELEMENT_RE.lastIndex = i;
     const e = ELEMENT_RE.exec(s);
     if (e) {
@@ -66,7 +63,6 @@ function parseFormula(formula: string): Counts {
       add(stack[stack.length - 1], sym, mult);
       continue;
     }
-
     throw new Error(`Unexpected token '${ch}' in formula '${formula}'`);
   }
   if (stack.length !== 1) throw new Error("Mismatched parentheses");
@@ -88,7 +84,7 @@ function molarMassFromCounts(counts: Counts): { mass: number; missing: string[] 
 }
 
 /* =============================
-   NUMERIC HELPERS
+   HELPERS
 ============================= */
 const toNum = (s: string) => {
   const n = parseFloat(s);
@@ -172,12 +168,6 @@ export function StoichiometryTool() {
       setError(null);
     }
   }, [counts, mm, missing]);
-
-  const resetInputs = () => {
-    setMass("");
-    setMoles("");
-    setParticles("");
-  };
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -318,46 +308,48 @@ export function StoichiometryTool() {
             <summary className="cursor-pointer select-none font-semibold">
               Show Calculation Steps
             </summary>
-            <div className="mt-3 space-y-3">
-              <p>
-                <b>Molar mass (M):</b> {fmt(mm)} g/mol
-              </p>
+            <div className="mt-4 space-y-5">
+              <div className="rounded-lg bg-gray-100 p-3">
+                <p className="font-medium">Step 1 — Molar Mass</p>
+                <BlockMath math={`M = ${fmt(mm)}\\ \\text{g/mol}`} />
+              </div>
+
               {known === "mass" && (
                 <>
-                  <p><b>Given mass (m):</b> {mass} g</p>
-                  <p>
-                    Moles: <code>n = m / M = {mass} / {fmt(mm)} = {fmt(derived.n)} mol</code>
-                  </p>
-                  <p>
-                    Particles: <code>N = n × Nₐ = {fmt(derived.n)} × {NA.toExponential(4)} = {fmt(derived.N)}</code>
-                  </p>
+                  <div className="rounded-lg bg-gray-100 p-3">
+                    <p className="font-medium">Step 2 — Convert Mass to Moles</p>
+                    <BlockMath math={`n = \\frac{m}{M} = \\frac{${mass}}{${fmt(mm)}} \\;\\Rightarrow\\; \\mathbf{${fmt(derived.n)}\\ \\text{mol}}`} />
+                  </div>
+                  <div className="rounded-lg bg-green-100 p-3">
+                    <p className="font-medium">Step 3 — Convert Moles to Particles</p>
+                    <BlockMath math={`N = n \\times N_a = ${fmt(derived.n)} \\times ${NA.toExponential(4)} \\;\\Rightarrow\\; \\mathbf{${fmt(derived.N)}}`} />
+                  </div>
                 </>
               )}
+
               {known === "moles" && (
                 <>
-                  <p><b>Given moles (n):</b> {moles} mol</p>
-                  <p>
-                    Mass: <code>m = n × M = {moles} × {fmt(mm)} = {fmt(derived.m)} g</code>
-                  </p>
-                  <p>
-                    Particles: <code>N = n × Nₐ = {moles} × {NA.toExponential(4)} = {fmt(derived.N)}</code>
-                  </p>
+                  <div className="rounded-lg bg-gray-100 p-3">
+                    <p className="font-medium">Step 2 — Convert Moles to Mass</p>
+                    <BlockMath math={`m = n \\times M = ${moles} \\times ${fmt(mm)} \\;\\Rightarrow\\; \\mathbf{${fmt(derived.m)}\\ \\text{g}}`} />
+                  </div>
+                  <div className="rounded-lg bg-green-100 p-3">
+                    <p className="font-medium">Step 3 — Convert Moles to Particles</p>
+                    <BlockMath math={`N = n \\times N_a = ${moles} \\times ${NA.toExponential(4)} \\;\\Rightarrow\\; \\mathbf{${fmt(derived.N)}}`} />
+                  </div>
                 </>
               )}
+
               {known === "particles" && (
                 <>
-                  <p>
-                    <b>Given particles (N):</b>{" "}
-                    {partUnit === "e23"
-                      ? `${particles} × 10^23`
-                      : particles} entities
-                  </p>
-                  <p>
-                    Moles: <code>n = N / Nₐ = {fmt(derived.N)} / {NA.toExponential(4)} = {fmt(derived.n)} mol</code>
-                  </p>
-                  <p>
-                    Mass: <code>m = n × M = {fmt(derived.n)} × {fmt(mm)} = {fmt(derived.m)} g</code>
-                  </p>
+                  <div className="rounded-lg bg-gray-100 p-3">
+                    <p className="font-medium">Step 2 — Convert Particles to Moles</p>
+                    <BlockMath math={`n = \\frac{N}{N_a} = \\frac{${fmt(derived.N)}}{${NA.toExponential(4)}} \\;\\Rightarrow\\; \\mathbf{${fmt(derived.n)}\\ \\text{mol}}`} />
+                  </div>
+                  <div className="rounded-lg bg-green-100 p-3">
+                    <p className="font-medium">Step 3 — Convert Moles to Mass</p>
+                    <BlockMath math={`m = n \\times M = ${fmt(derived.n)} \\times ${fmt(mm)} \\;\\Rightarrow\\; \\mathbf{${fmt(derived.m)}\\ \\text{g}}`} />
+                  </div>
                 </>
               )}
             </div>

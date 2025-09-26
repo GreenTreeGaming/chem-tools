@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { elements } from "@/utils/elementsData";
+import "katex/dist/katex.min.css";
+import { BlockMath } from "react-katex";
 
 // simple parser: symbols + integer counts
 function parseFormula(formula: string): { [symbol: string]: number } | null {
@@ -85,7 +87,7 @@ export function MolarMassTool() {
         {/* Formula Reference */}
         <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-base text-gray-800">
           <h4 className="font-bold mb-2">Formula</h4>
-          <p>Molar Mass = Σ (atomic weight × number of atoms)</p>
+          <BlockMath math="M = \sum ( \text{atomic weight} \times \text{number of atoms} )" />
         </div>
 
         {/* Breakdown */}
@@ -120,17 +122,31 @@ export function MolarMassTool() {
         {mass && breakdown.length > 0 && (
           <details className="mt-6 rounded-xl border border-gray-200 bg-white p-4 text-base">
             <summary className="cursor-pointer font-semibold text-gray-800 text-lg">Show Work</summary>
-            <ul className="mt-2 space-y-2 text-gray-700 leading-relaxed">
+            <div className="mt-4 space-y-6">
               {breakdown.map((b, i) => (
-                <li key={i}>
-                  {b.sym}
-                  <sub>{b.count}</sub>: {b.aw.toFixed(3)} × {b.count} = {(b.aw * b.count).toFixed(3)}
-                </li>
+                <div key={i}>
+                  <div className="font-medium text-gray-800">
+                    Step {i + 1} — Contribution from {b.sym}
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Multiply atomic weight of {b.sym} by the number of atoms:
+                  </p>
+                  <BlockMath
+                    math={`${b.sym}_{${b.count}}: ${b.aw.toFixed(3)} \\times ${b.count} \\Rightarrow ${(b.aw * b.count).toFixed(3)}`}
+                  />
+                </div>
               ))}
-              <li className="font-semibold">
-                Total = {mass.toFixed(3)} g/mol
-              </li>
-            </ul>
+
+              <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-200">
+                <div className="font-medium text-gray-800">Final Step — Total Molar Mass</div>
+                <p className="text-sm text-gray-600">Sum all contributions:</p>
+                <BlockMath
+                  math={`M = ${breakdown
+                    .map((b) => `${(b.aw * b.count).toFixed(3)}`)
+                    .join(" + ")} \\Rightarrow \\mathbf{${mass.toFixed(3)}\\ \\text{g/mol}}`}
+                />
+              </div>
+            </div>
           </details>
         )}
       </div>
