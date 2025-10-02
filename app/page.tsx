@@ -14,6 +14,7 @@ import { GasLawSolver } from "@/components/tools/GasLawSolver"; // 👈 new impo
 import { GasLawVariations } from "@/components/tools/GasLawVariations"; // 👈 new import
 import { BondEnthalpies } from "@/components/tools/BondEnthalpies";
 import { SolubilityRules } from "@/components/tools/SolubilityRules";
+import { ReactionStoichiometryTool } from "@/components/tools/ReactionStoichiometryTool";
 
 /* ---------------- Types ---------------- */
 
@@ -25,6 +26,7 @@ type TabKey =
   | "solutions"
   | "isotopes"
   | "stoich"
+  | "reactionstoich" // 👈 NEW
   | "limiting"
   | "yield"
   | "gaslaw"
@@ -39,11 +41,12 @@ type ToolItem = { key: TabKey; label: string; desc?: string };
 type ToolGroup = { title: string; items: ToolItem[] };
 
 const TOOL_GROUPS: ToolGroup[] = [
-  {
+{
     title: "🔢 Stoichiometry & Equations",
     items: [
       { key: "balancer", label: "Equation Balancer", desc: "Balance reactions" },
       { key: "stoich", label: "Stoichiometry", desc: "Mass ↔ moles ↔ particles" },
+      { key: "reactionstoich", label: "Reaction Stoichiometry", desc: "Reactant-product mole ratios & limiting reagent" }, // 👈 NEW
       { key: "limiting", label: "Limiting Reagent", desc: "Find limiting & yield" },
       { key: "yield", label: "Yield", desc: "Theoretical & % yield" },
     ],
@@ -202,6 +205,10 @@ export default function Home() {
 
         <section hidden={active !== "stoich"}>
           <StoichiometryTool />
+        </section>
+
+        <section hidden={active !== "reactionstoich"}>
+          <ReactionStoichiometryTool /> {/* 👈 NEW */}
         </section>
 
         <section hidden={active !== "limiting"}>
