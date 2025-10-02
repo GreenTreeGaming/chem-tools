@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CATEGORY_META } from "@/utils/categoryMeta";
 import "katex/dist/katex.min.css";
-import { BlockMath, InlineMath } from "react-katex";
+import { BlockMath } from "react-katex";
 
 function toNumber(s: string) {
   const n = parseFloat(s);
@@ -28,11 +27,6 @@ export function MolarityTool() {
     const vL = volUnit === "L" ? vInput : vInput / 1000;
     return vL > 0 ? n / vL : null;
   }, [moles, volume, volUnit]);
-
-  const molarityError =
-    (moles && Number.isNaN(toNumber(moles))) ||
-    (volume && Number.isNaN(toNumber(volume))) ||
-    (toNumber(volume) <= 0);
 
   // Dilution helper (C1 V1 = C2 V2)
   const [c1, setC1] = useState("");
@@ -63,88 +57,67 @@ export function MolarityTool() {
       case "c1":
         if (v1L && _c2 !== null && v2L) {
           value = (_c2 * v2L) / v1L;
-          steps = String.raw`C_1 = \frac{C_2 \times V_2}{V_1} = \frac{${_c2} \times ${fmt(
-            v2L
-          )}}{${fmt(v1L)}} = ${fmt(value)}\ \text{M}`;
+          steps = String.raw`C_1 = \frac{C_2 V_2}{V_1} = \frac{${_c2}\times ${fmt(v2L)}}{${fmt(v1L)}}`;
         }
         break;
       case "v1":
         if (_c1 !== null && _c2 !== null && _c1 > 0 && v2L !== null) {
           value = (_c2 * v2L) / _c1;
-          steps = String.raw`V_1 = \frac{C_2 \times V_2}{C_1} = \frac{${_c2} \times ${fmt(
-            v2L
-          )}}{${_c1}} = ${fmt(value)}\ \text{L}`;
+          steps = String.raw`V_1 = \frac{C_2 V_2}{C_1} = \frac{${_c2}\times ${fmt(v2L)}}{${_c1}}`;
         }
         break;
       case "c2":
         if (_c1 !== null && v1L && v2L) {
           value = (_c1 * v1L) / v2L;
-          steps = String.raw`C_2 = \frac{C_1 \times V_1}{V_2} = \frac{${_c1} \times ${fmt(
-            v1L
-          )}}{${fmt(v2L)}} = ${fmt(value)}\ \text{M}`;
+          steps = String.raw`C_2 = \frac{C_1 V_1}{V_2} = \frac{${_c1}\times ${fmt(v1L)}}{${fmt(v2L)}}`;
         }
         break;
       case "v2":
         if (_c2 !== null && _c1 !== null && _c2 > 0 && v1L !== null) {
           value = (_c1 * v1L) / _c2;
-          steps = String.raw`V_2 = \frac{C_1 \times V_1}{C_2} = \frac{${_c1} \times ${fmt(
-            v1L
-          )}}{${_c2}} = ${fmt(value)}\ \text{L}`;
+          steps = String.raw`V_2 = \frac{C_1 V_1}{C_2} = \frac{${_c1}\times ${fmt(v1L)}}{${_c2}}`;
         }
         break;
-      }
+    }
     return { field: blank, value, steps };
   }, [c1, v1, c2, v2, vUnitDil]);
-
-  // strong colors
-  const molarityColor = CATEGORY_META["transition metal"]; // blue strong
-  const dilutionColor = CATEGORY_META["alkaline earth metal"]; // green strong
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white shadow-md overflow-hidden">
       {/* Header */}
-      <div className={`${molarityColor.bg} ${molarityColor.text} px-6 py-4`}>
-        <h2>Molarity & Dilution Calculator</h2>
-        <p>
-          Compute solutions with{" "}
-          <InlineMath math="M = \frac{n}{V}" /> and{" "}
-          <InlineMath math="C_1 V_1 = C_2 V_2" />
+      <div className="bg-teal-600 text-white px-6 py-4">
+        <h2 className="text-xl font-bold">Molarity & Dilution Calculator</h2>
+        <p className="text-base opacity-90">
+          Calculate solution concentration and dilution values.
         </p>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-8">
         {/* Molarity */}
         <h3 className="text-lg font-semibold text-gray-800">Molarity</h3>
-        <div className="mt-3 grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-3">
           <label className="text-base">
-            <span className="block text-gray-700 font-medium mb-1">Moles of solute (mol)</span>
+            <span className="block mb-1 text-gray-700">Moles of solute (mol)</span>
             <input
               type="number"
-              inputMode="decimal"
-              step="any"
-              min="0"
               value={moles}
               onChange={(e) => setMoles(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-base shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-base shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200"
             />
           </label>
-
           <label className="text-base col-span-2">
-            <span className="block text-gray-700 font-medium mb-1">Solution volume</span>
+            <span className="block mb-1 text-gray-700">Solution volume</span>
             <div className="flex gap-2">
               <input
                 type="number"
-                inputMode="decimal"
-                step="any"
-                min="0"
                 value={volume}
                 onChange={(e) => setVolume(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-base shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-base shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200"
               />
               <select
                 value={volUnit}
                 onChange={(e) => setVolUnit(e.target.value as "L" | "mL")}
-                className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-base shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+                className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-base shadow-sm"
               >
                 <option value="L">L</option>
                 <option value="mL">mL</option>
@@ -153,79 +126,73 @@ export function MolarityTool() {
           </label>
         </div>
 
-        <div className="mt-4 text-lg">
-          <div>
-            <span>Molarity: </span>
-            {molarity !== null ? (
-              <InlineMath math={`${fmt(molarity)}\\ \\text{M}`} />
-            ) : (
-              "—"
-            )}
+        {/* Result */}
+        {molarity !== null && (
+          <div className="rounded-xl bg-teal-50 p-4 text-lg">
+            <div className="mb-1 text-gray-600">Result:</div>
+            <div className="font-semibold text-teal-800">
+              M = {fmt(molarity)} M
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Formula Reference */}
         <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-base text-gray-800">
-          <div>
-            <h4>Formulas</h4>
-            <ul>
-              <li>
-                <BlockMath math="M = \frac{n}{V}" />
-              </li>
-              <li>
-                <BlockMath math="C_1 V_1 = C_2 V_2" />
-              </li>
-            </ul>
-          </div>
+          <h4 className="font-bold mb-2">Formulas</h4>
+          <ul className="space-y-2">
+            <li><BlockMath math="M = \frac{n}{V}" /></li>
+            <li><BlockMath math="C_1 V_1 = C_2 V_2" /></li>
+          </ul>
         </div>
 
         <hr className="my-6 border-dashed" />
 
         {/* Dilution */}
         <h3 className="text-lg font-semibold text-gray-800">Dilution</h3>
-        <p className="text-sm text-gray-500">Leave exactly one field blank; we’ll solve it.</p>
+        <p className="text-sm text-gray-500">Leave one field blank; it will be solved for you.</p>
 
-        <div className="mt-3 grid gap-4 sm:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-4 mt-3">
+          {/* Inputs same as before */}
           <label className="text-base">
-            <span className="block text-gray-700 font-medium mb-1">C₁ (M)</span>
+            C₁ (M)
             <input
               type="number"
               value={c1}
               onChange={(e) => setC1(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-base shadow-sm focus:border-green-500 focus:ring focus:ring-green-200"
+              className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm"
             />
           </label>
           <label className="text-base">
-            <span className="block text-gray-700 font-medium mb-1">V₁</span>
+            V₁
             <input
               type="number"
               value={v1}
               onChange={(e) => setV1(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-base shadow-sm focus:border-green-500 focus:ring focus:ring-green-200"
+              className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm"
             />
           </label>
           <label className="text-base">
-            <span className="block text-gray-700 font-medium mb-1">C₂ (M)</span>
+            C₂ (M)
             <input
               type="number"
               value={c2}
               onChange={(e) => setC2(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-base shadow-sm focus:border-green-500 focus:ring focus:ring-green-200"
+              className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm"
             />
           </label>
           <label className="text-base">
-            <span className="block text-gray-700 font-medium mb-1">V₂</span>
-            <div className="flex gap-2">
+            V₂
+            <div className="flex gap-2 mt-1">
               <input
                 type="number"
                 value={v2}
                 onChange={(e) => setV2(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-base shadow-sm focus:border-green-500 focus:ring focus:ring-green-200"
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm"
               />
               <select
                 value={vUnitDil}
                 onChange={(e) => setVUnitDil(e.target.value as "L" | "mL")}
-                className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-base shadow-sm focus:border-green-500 focus:ring focus:ring-green-200"
+                className="rounded-xl border border-gray-300 bg-white px-3 py-2"
               >
                 <option value="mL">mL</option>
                 <option value="L">L</option>
@@ -234,85 +201,47 @@ export function MolarityTool() {
           </label>
         </div>
 
-        <div className="mt-4 text-lg">
-          {dilution.field ? (
-            <>
-              <span>{dilution.field.toUpperCase()} = </span>
-              <InlineMath
-                math={
-                  dilution.field.startsWith("v")
-                    ? `${fmt(
-                        vUnitDil === "L" ? dilution.value : dilution.value! * 1000
-                      )}\\ ${vUnitDil}`
-                    : `${fmt(dilution.value)}\\ \\text{M}`
-                }
-              />
-            </>
-          ) : (
-            <span className="text-gray-500">Enter three of C₁, V₁, C₂, V₂ (leave one blank).</span>
-          )}
-        </div>
+        {/* Result */}
+        {dilution.field && dilution.value !== null && (
+          <div className="rounded-xl bg-green-50 p-4 text-lg">
+            <div className="mb-1 text-gray-600">Result:</div>
+            <div className="font-semibold text-green-800">
+              {dilution.field.toUpperCase()} ={" "}
+              {dilution.field.startsWith("v")
+                ? `${fmt(vUnitDil === "L" ? dilution.value : dilution.value * 1000)} ${vUnitDil}`
+                : `${fmt(dilution.value)} M`}
+            </div>
+          </div>
+        )}
 
         {/* Show Work */}
         {dilution.steps && (
-          <details className="mt-4 rounded-xl border border-gray-200 bg-white p-4 text-base">
+          <details className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
             <summary className="cursor-pointer font-semibold text-gray-800 text-lg">
-              Show Work (with your inputs)
+              Show Work
             </summary>
-            <div className="mt-4 space-y-6">
-              {dilution.field === "c1" && (
-                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
-                  <div className="font-medium text-gray-800">Step — Solve for C₁</div>
-                  <p className="text-sm text-gray-600">Rearrange C₁V₁ = C₂V₂ to isolate C₁:</p>
-                  <BlockMath
-                    math={dilution.steps.replace(
-                      /= ([^=]+) M$/,
-                      "\\Rightarrow \\\\mathbf{$1}\\ \\text{M}"
-                    )}
-                  />
+            <div className="mt-4 space-y-4">
+              <div className="pl-2 border-l-4 border-teal-400">
+                <div className="font-medium text-gray-700">Rearrange and substitute values</div>
+                <BlockMath math={dilution.steps} />
+              </div>
+              <div className="pl-2 border-l-4 border-teal-600">
+                <div className="font-medium text-gray-700">Final Answer</div>
+                <div className="mt-1 rounded bg-teal-100 text-teal-800 px-3 py-1 inline-block">
+                  <b>
+                    {dilution.field?.toUpperCase()} ={" "}
+                    {dilution.field?.startsWith("v")
+                      ? `${fmt(vUnitDil === "L" ? dilution.value : dilution.value! * 1000)} ${vUnitDil}`
+                      : `${fmt(dilution.value)} M`}
+                  </b>
                 </div>
-              )}
-              {dilution.field === "v1" && (
-                <div className="p-3 rounded-lg bg-green-50 border border-green-200">
-                  <div className="font-medium text-gray-800">Step — Solve for V₁</div>
-                  <p className="text-sm text-gray-600">Rearrange C₁V₁ = C₂V₂ to isolate V₁:</p>
-                  <BlockMath
-                    math={dilution.steps.replace(
-                      /= ([^=]+) L$/,
-                      "\\Rightarrow \\\\mathbf{$1}\\ \\text{L}"
-                    )}
-                  />
-                </div>
-              )}
-              {dilution.field === "c2" && (
-                <div className="p-3 rounded-lg bg-purple-50 border border-purple-200">
-                  <div className="font-medium text-gray-800">Step — Solve for C₂</div>
-                  <p className="text-sm text-gray-600">Rearrange C₁V₁ = C₂V₂ to isolate C₂:</p>
-                  <BlockMath
-                    math={dilution.steps.replace(
-                      /= ([^=]+) M$/,
-                      "\\Rightarrow \\\\mathbf{$1}\\ \\text{M}"
-                    )}
-                  />
-                </div>
-              )}
-              {dilution.field === "v2" && (
-                <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
-                  <div className="font-medium text-gray-800">Step — Solve for V₂</div>
-                  <p className="text-sm text-gray-600">Rearrange C₁V₁ = C₂V₂ to isolate V₂:</p>
-                  <BlockMath
-                    math={dilution.steps.replace(
-                      /= ([^=]+) L$/,
-                      "\\Rightarrow \\\\mathbf{$1}\\ \\text{L}"
-                    )}
-                  />
-                </div>
-              )}
+              </div>
             </div>
           </details>
         )}
 
-        <div className="mt-6 flex gap-2">
+        {/* Reset */}
+        <div className="mt-6">
           <button
             type="button"
             onClick={() => {

@@ -1,0 +1,30 @@
+[
+  {
+    "rule": "All common salts of Group 1 cations (Li⁺, Na⁺, K⁺, Rb⁺, Cs⁺) and ammonium (NH₄⁺) are soluble.",
+    "exceptions": []
+  },
+  {
+    "rule": "All nitrates (NO₃⁻), acetates (CH₃COO⁻), and perchlorates (ClO₄⁻) are soluble.",
+    "exceptions": []
+  },
+  {
+    "rule": "Most chlorides (Cl⁻), bromides (Br⁻), and iodides (I⁻) are soluble.",
+    "exceptions": ["Ag⁺", "Pb²⁺", "Hg₂²⁺"]
+  },
+  {
+    "rule": "Most sulfates (SO₄²⁻) are soluble.",
+    "exceptions": ["Ba²⁺", "Pb²⁺", "Ca²⁺", "Sr²⁺"]
+  },
+  {
+    "rule": "Most hydroxides (OH⁻) are insoluble.",
+    "exceptions": ["Group 1 cations", "Ca²⁺ (slightly soluble)", "Ba²⁺", "Sr²⁺"]
+  },
+  {
+    "rule": "Most carbonates (CO₃²⁻), phosphates (PO₄³⁻), and sulfides (S²⁻) are insoluble.",
+    "exceptions": ["Group 1 cations", "NH₄⁺"]
+  },
+  {
+    "rule": "Most oxides (O²⁻) are insoluble.",
+    "exceptions": ["Group 1 cations", "Ca²⁺", "Ba²⁺", "Sr²⁺ (react with water to form hydroxides)"]
+  }
+]

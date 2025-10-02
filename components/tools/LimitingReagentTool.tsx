@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { elements } from "@/utils/elementsData";
 import "katex/dist/katex.min.css";
-import { BlockMath, InlineMath } from "react-katex";
+import { BlockMath } from "react-katex";
 
 /* ---------------- constants ---------------- */
 const AW = new Map<string, number>(
@@ -44,7 +44,10 @@ function parseFormula(formula: string): Counts {
       for (const [el, cnt] of Object.entries(group)) add(top, el, cnt * mult);
       continue;
     }
-    if (ch === "·" || ch === ".") { i++; continue; }
+    if (ch === "·" || ch === ".") {
+      i++;
+      continue;
+    }
 
     ELEMENT_RE.lastIndex = i;
     const e = ELEMENT_RE.exec(s);
@@ -87,7 +90,8 @@ function splitArrow(eq: string) {
 }
 
 function parseSide(side: string): Species[] {
-  return side.split("+")
+  return side
+    .split("+")
     .map((s) => s.trim())
     .filter(Boolean)
     .map((chunk) => {
@@ -265,11 +269,10 @@ export function LimitingReagentTool() {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="bg-indigo-600 px-6 py-4 text-white rounded-t-2xl">
+      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-4 text-white rounded-t-2xl">
         <h2 className="text-xl font-bold">Limiting Reagent & Percent Yield</h2>
-        <p className="text-base opacity-90">
-          Paste a <b>balanced</b> equation, choose reactant inputs (mol, g, or solution),
-          pick a product, and optionally enter the actual product mass to calculate percent yield.
+        <p className="text-sm opacity-90">
+          Enter a <b>balanced equation</b>, choose reactant inputs, pick a product, and (optionally) enter the actual product mass.
         </p>
       </div>
 
@@ -478,24 +481,25 @@ export function LimitingReagentTool() {
 
           {parsed.ok && !error && outcome && (
             <>
+              {/* Main results */}
               <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-xl bg-green-600 p-3 text-white">
-                  <div className="text-xs opacity-80">Limiting Reagent</div>
-                  <div className="text-sm font-semibold">
+                <div className="rounded-2xl bg-emerald-50 p-4 shadow-sm">
+                  <div className="text-sm text-gray-600">Limiting Reagent</div>
+                  <div className="text-lg font-bold text-emerald-700">
                     {outcome.limiting ? outcome.limiting.formula : "—"}
                   </div>
                 </div>
-                <div className="rounded-xl bg-blue-600 p-3 text-white">
-                  <div className="text-xs opacity-80">Reaction Extent (ξ)</div>
-                  <div className="text-sm font-semibold">
+                <div className="rounded-2xl bg-sky-50 p-4 shadow-sm">
+                  <div className="text-sm text-gray-600">Reaction Extent (ξ)</div>
+                  <div className="text-lg font-bold text-sky-700">
                     {fmt(outcome.extent, 6)} mol
                   </div>
                 </div>
-                <div className="rounded-xl bg-purple-600 p-3 text-white">
-                  <div className="text-xs opacity-80">
+                <div className="rounded-2xl bg-violet-50 p-4 shadow-sm">
+                  <div className="text-sm text-gray-600">
                     Theoretical Yield ({outcome.product.formula})
                   </div>
-                  <div className="text-sm font-semibold">
+                  <div className="text-lg font-bold text-violet-700">
                     {fmt(outcome.product.moles, 6)} mol • {fmt(outcome.product.grams, 4)} g
                   </div>
                 </div>
@@ -503,50 +507,63 @@ export function LimitingReagentTool() {
 
               {/* Percent yield */}
               <div className="mt-4 grid gap-4 md:grid-cols-3">
-                <div className="rounded-xl bg-emerald-600 p-3 text-white md:col-span-3">
-                  <div className="text-xs opacity-80">Percent Yield</div>
-                  <div className="text-sm font-semibold">
+                <div className="rounded-2xl bg-pink-50 p-4 shadow-sm md:col-span-3">
+                  <div className="text-sm text-gray-600">Percent Yield</div>
+                  <div className="text-lg font-bold text-pink-700">
                     {percentYield === null ? "—" : `${fmt(percentYield, 2)} %`}
                   </div>
                 </div>
               </div>
 
               {/* Leftovers */}
-              <div className="mt-4">
-                <h4 className="text-lg font-semibold text-gray-800 mt-4">
+              <div className="mt-6">
+                <h4 className="text-lg font-semibold text-gray-800">
                   Excess Reactants (Leftover)
                 </h4>
-                <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+                <div className="mt-3 grid gap-4 md:grid-cols-2">
                   {outcome.leftovers.map((x) => (
-                    <li
+                    <div
                       key={x.formula}
-                      className="rounded-lg bg-gray-700 text-white p-3"
+                      className="rounded-2xl bg-gray-50 p-4 shadow-sm"
                     >
-                      <div className="text-sm font-medium">{x.formula}</div>
-                      <div className="text-xs opacity-80">
+                      <div className="text-sm text-gray-600">{x.formula}</div>
+                      <div className="text-lg font-bold text-gray-800">
                         {x.excess
                           ? "treated as excess"
-                          : `${fmt(x.nLeft, 6)} mol • ${fmt(x.mLeft, 4)} g remaining`}
+                          : `${fmt(x.nLeft, 6)} mol • ${fmt(x.mLeft, 4)} g`}
                       </div>
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             </>
           )}
         </div>
 
+        {/* Formula Reference */}
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800">
+          <h3 className="font-bold text-base mb-2">Formulas</h3>
+          <ul className="space-y-2 leading-relaxed">
+            <li><BlockMath math="n = \frac{m}{M}" /></li>
+            <li><BlockMath math="n = M \times V" /></li>
+            <li><BlockMath math="\xi = \frac{n}{\nu}" /></li>
+            <li><BlockMath math="n_{\text{product}} = \xi \times \nu_{\text{product}}" /></li>
+            <li><BlockMath math="m_{\text{product}} = n_{\text{product}} \times M_{\text{product}}" /></li>
+            <li><BlockMath math="\%\ \text{yield} = \frac{m_{\text{actual}}}{m_{\text{theoretical}}} \times 100" /></li>
+          </ul>
+        </div>
+
         {/* --- Show Work --- */}
         {parsed.ok && outcome && (
-          <details className="mt-6 text-lg text-gray-800">
+          <details className="mt-6 text-base text-gray-800">
             <summary className="cursor-pointer select-none font-semibold">
-              Show Calculation Steps
+              Show Work (with your inputs)
             </summary>
-            <div className="mt-4 space-y-5 leading-relaxed">
+            <div className="mt-4 space-y-6 leading-relaxed">
               
               {/* Step 1 */}
-              <div className="rounded-lg bg-gray-100 p-4">
-                <p className="font-medium">Step 1 — Convert each reactant to moles</p>
+              <div className="pl-3 border-l-4 border-gray-400">
+                <div className="font-medium mb-1">Step 1 — Convert each reactant to moles</div>
                 {parsed.reactMM.map((r, i) => {
                   const a = amounts[i];
                   const n = outcome.nReact?.[i];
@@ -587,8 +604,8 @@ export function LimitingReagentTool() {
               </div>
 
               {/* Step 2 */}
-              <div className="rounded-lg bg-gray-100 p-4">
-                <p className="font-medium">Step 2 — Reaction extent for each reactant</p>
+              <div className="pl-3 border-l-4 border-gray-500">
+                <div className="font-medium mb-1">Step 2 — Reaction extent for each reactant</div>
                 {parsed.reactMM.map((r, i) => {
                   const n = outcome.nReact?.[i];
                   if (!Number.isFinite(n)) return null;
@@ -605,22 +622,19 @@ export function LimitingReagentTool() {
               </div>
 
               {/* Step 3 */}
-              <div className="rounded-lg bg-yellow-100 p-4">
-                <p className="font-medium">Step 3 — Identify limiting reagent</p>
+              <div className="pl-3 border-l-4 border-amber-400">
+                <div className="font-medium mb-1">Step 3 — Identify limiting reagent</div>
                 <BlockMath
-                  math={`\\text{Smallest }\\xi = ${fmt(
-                    outcome.extent,
-                    4
-                  )}\\ \\text{mol from } ${outcome.limiting?.formula}`}
+                  math={`\\text{Smallest }\\xi = ${fmt(outcome.extent, 4)}\\ \\text{mol from } ${outcome.limiting?.formula}`}
                 />
-                <p className="mt-1">
-                  ⇒ Limiting reagent is <b>{outcome.limiting?.formula}</b>
-                </p>
+                <div className="mt-2 inline-block bg-amber-100 text-amber-800 px-2 py-1 rounded font-semibold">
+                  Limiting reagent = {outcome.limiting?.formula}
+                </div>
               </div>
 
               {/* Step 4 */}
-              <div className="rounded-lg bg-green-100 p-4">
-                <p className="font-medium">Step 4 — Theoretical yield of product</p>
+              <div className="pl-3 border-l-4 border-green-400">
+                <div className="font-medium mb-1">Step 4 — Theoretical yield of product</div>
                 <BlockMath
                   math={`n_{${outcome.product.formula}} = \\xi \\times \\nu = ${fmt(
                     outcome.extent,
@@ -642,18 +656,23 @@ export function LimitingReagentTool() {
               </div>
 
               {/* Step 5 */}
-              <div className="rounded-lg bg-blue-100 p-4">
-                <p className="font-medium">Step 5 — Percent yield</p>
+              <div className="pl-3 border-l-4 border-blue-400">
+                <div className="font-medium mb-1">Step 5 — Percent yield</div>
                 {actualMass ? (
-                  <BlockMath
-                    math={`\\%\\,\\text{yield} = \\frac{m_{actual}}{m_{theoretical}} \\times 100 = \\frac{${actualMass}}{${fmt(
-                      outcome.product.grams,
-                      4
-                    )}} \\times 100 \\;\\Rightarrow\\; \\mathbf{${fmt(
-                      percentYield,
-                      2
-                    )}\\ \\%}`}
-                  />
+                  <>
+                    <BlockMath
+                      math={`\\%\\,\\text{yield} = \\frac{m_{actual}}{m_{theoretical}} \\times 100 = \\frac{${actualMass}}{${fmt(
+                        outcome.product.grams,
+                        4
+                      )}} \\times 100 \\;\\Rightarrow\\; \\mathbf{${fmt(
+                        percentYield,
+                        2
+                      )}\\ \\%}`}
+                    />
+                    <div className="mt-2 inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold">
+                      Yield = {fmt(percentYield, 2)} %
+                    </div>
+                  </>
                 ) : (
                   <p>Enter actual mass to compute percent yield.</p>
                 )}

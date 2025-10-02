@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CATEGORY_META } from "@/utils/categoryMeta";
 import type { ReactNode } from "react";
 import { BlockMath } from "react-katex";
 
@@ -37,15 +36,10 @@ export function EquationBalancer() {
     }
   }
 
-  // pick strong palette colors
-  const headerColor = CATEGORY_META["transition metal"];
-  const successColor = CATEGORY_META["alkaline earth metal"];
-  const errorColor = CATEGORY_META["halogen"];
-
   return (
     <div className="rounded-2xl border border-gray-200 bg-white shadow-md overflow-hidden">
       {/* Header */}
-      <div className={`${headerColor.bg} ${headerColor.text} px-6 py-4`}>
+      <div className="bg-rose-600 text-white px-6 py-4">
         <h2 className="text-xl font-bold">Equation Balancer</h2>
         <p className="text-base opacity-90">
           Paste an unbalanced equation like <code>Fe + O₂ → Fe₂O₃</code>.  
@@ -61,24 +55,21 @@ export function EquationBalancer() {
           rows={2}
           placeholder="e.g., C3H8 + O2 -> CO2 + H2O"
           spellCheck={false}
-          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-lg shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-lg shadow-sm focus:border-rose-500 focus:ring focus:ring-rose-200"
         />
 
         {/* Example buttons */}
         <div className="flex flex-wrap gap-2">
-          {examples.map((ex, i) => {
-            const palette = Object.values(CATEGORY_META)[i % Object.keys(CATEGORY_META).length];
-            return (
-              <button
-                key={ex}
-                onClick={() => setInput(ex)}
-                type="button"
-                className={`rounded-lg px-3 py-1 text-sm font-medium ${palette.bg} ${palette.text} ${palette.ring} shadow-sm`}
-              >
-                {ex}
-              </button>
-            );
-          })}
+          {examples.map((ex) => (
+            <button
+              key={ex}
+              onClick={() => setInput(ex)}
+              type="button"
+              className="rounded-lg bg-gray-100 text-gray-700 border border-gray-300 px-3 py-1 text-sm font-medium shadow-sm hover:bg-gray-200"
+            >
+              {ex}
+            </button>
+          ))}
         </div>
 
         {/* Action buttons */}
@@ -86,7 +77,7 @@ export function EquationBalancer() {
           <button
             onClick={handleBalance}
             type="button"
-            className={`inline-flex items-center justify-center rounded-xl ${headerColor.bg} ${headerColor.text} px-5 py-2 text-base font-semibold shadow-sm transition hover:${headerColor.ring}`}
+            className="inline-flex items-center justify-center rounded-xl bg-rose-600 text-white px-5 py-2 text-base font-semibold shadow-sm hover:bg-rose-700"
           >
             Balance
           </button>
@@ -105,18 +96,15 @@ export function EquationBalancer() {
 
         {/* Result */}
         {result && (
-          <div
-            className={`mt-2 rounded-xl border ${successColor.ring} ${successColor.bg} ${successColor.text} p-4 text-lg font-medium shadow-sm`}
-          >
-            <span className="font-semibold">Balanced:</span> {result}
+          <div className="rounded-xl bg-rose-50 p-4 text-lg">
+            <div className="mb-1 text-gray-600">Result:</div>
+            <div className="font-semibold text-rose-800">{result}</div>
           </div>
         )}
 
         {/* Error */}
         {error && (
-          <div
-            className={`mt-2 rounded-xl border ${errorColor.ring} ${errorColor.bg} ${errorColor.text} p-4 text-lg font-medium shadow-sm`}
-          >
+          <div className="rounded-xl bg-red-50 border border-red-300 text-red-800 p-4 text-lg font-medium shadow-sm">
             {error}
           </div>
         )}
@@ -161,6 +149,11 @@ class Frac {
   neg() { return new Frac(-this.n, this.d); }
   isZero() { return this.n === 0n; }
   eq(o: Frac) { return this.n === o.n && this.d === o.d; }
+}
+
+function toLatexFormula(formula: string): string {
+  // replace numbers with _{number}
+  return formula.replace(/(\d+)/g, "_{$1}");
 }
 
 type Counts = Record<string, number>;
@@ -294,6 +287,19 @@ function nullspaceVector(A: Frac[][]): Frac[] {
   return intsSigned.map((v) => new Frac(v / g, 1n));
 }
 
+function gcdArray(nums: number[]): number {
+  return nums.reduce((g, v) => {
+    let a = Math.abs(v);   // <-- make this mutable
+    let b = g;             // also mutable
+    while (b !== 0) {
+      const t = b;
+      b = a % b;
+      a = t;
+    }
+    return a;
+  }, Math.abs(nums[0] || 1));
+}
+
 function balanceEquation(eq: string): ReactNode {
   const sanitized = eq.replace(/\s+-\s+(?=[A-Za-z(])/g, " + ");
   const { left, right } = splitArrow(sanitized);
@@ -301,16 +307,39 @@ function balanceEquation(eq: string): ReactNode {
   const coeffs = nullspaceVector(A);
   const ints = coeffs.map((f) => Number(f.n));
 
-  const fmtSide = (items: string[], offset: number) =>
-    items
-      .map((s, idx) => {
-        const k = ints[offset + idx];
-        const coef = Math.abs(k);
-        return `${coef === 1 ? "" : coef} ${s}`;
-      })
-      .join(" + ");
+  // ✅ Reduce coefficients by gcd
+  const g = gcdArray(ints);
+  const reduced = ints.map((c) => c / g);
 
-  const latex = fmtSide(left, 0) + " \\; \\rightarrow \\; " + fmtSide(right, leftCount);
+  const fmtSide = (items: string[], offset: number, arr: number[]) =>
+  items
+    .map((s, idx) => {
+      const k = arr[offset + idx];
+      const coef = Math.abs(k);
+      const latexFormula = toLatexFormula(s); // ✅ convert to KaTeX subscripts
+      return `${coef === 1 ? "" : coef} ${latexFormula}`;
+    })
+    .join(" + ");
 
-  return <BlockMath math={latex} />;
+  // Build LaTeX from reduced form
+  const latexReduced =
+    fmtSide(left, 0, reduced) + " \\; \\rightarrow \\; " + fmtSide(right, leftCount, reduced);
+
+  // If user’s input matches the reduced form, return that
+  const userNoSpaces = sanitized.replace(/\s+/g, "");
+  const reducedNoSpaces = latexReduced
+    .replace(/\\;|\\rightarrow/g, "")
+    .replace(/\s+/g, "")
+    .replace(/\+/g, "+")
+    .replace(/(\d) /g, "$1");
+
+  if (userNoSpaces === reducedNoSpaces) {
+    return <BlockMath math={latexReduced} />;
+  }
+
+  // Otherwise, return full balanced version
+  const latexFull =
+    fmtSide(left, 0, ints) + " \\; \\rightarrow \\; " + fmtSide(right, leftCount, ints);
+
+  return <BlockMath math={latexFull} />;
 }

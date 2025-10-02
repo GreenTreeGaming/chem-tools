@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { elements } from "@/utils/elementsData"; // atomic weights
+import { elements } from "@/utils/elementsData";
 import "katex/dist/katex.min.css";
 import { BlockMath } from "react-katex";
 
 /* =============================
    CONSTANTS + LOOKUPS
 ============================= */
-const NA = 6.02214076e23; // Avogadro’s number
+const NA = 6.02214076e23;
 
 const AW = new Map<string, number>(
   elements
@@ -91,11 +91,43 @@ const toNum = (s: string) => {
   return Number.isFinite(n) ? n : NaN;
 };
 
-const fmt = (x: number | null, digits = 4) =>
-  x === null || !Number.isFinite(x) ? "—" :
-  (Math.abs(x) !== 0 && (Math.abs(x) < 1e-3 || Math.abs(x) >= 1e6))
-    ? x.toExponential(digits)
-    : x.toFixed(digits);
+function fmtSci(x: number | null, sig = 5): string {
+  if (x === null || !Number.isFinite(x)) return "—";
+  if (x === 0) return "0";
+
+  const absx = Math.abs(x);
+
+  // If the number is "normal", just return with sig figs (no ×10^n)
+  if (absx >= 1e-3 && absx < 1e4) {
+    return Number(x.toPrecision(sig)).toString();
+  }
+
+  // Otherwise, format in scientific notation
+  const exp = Math.floor(Math.log10(absx));
+  const mant = x / Math.pow(10, exp);
+  const mantRounded = Number(mant.toPrecision(sig));
+
+  return `${mantRounded} \\times 10^{${exp}}`;
+}
+
+function fmtSciPlain(x: number | null, sig = 5): string {
+  if (x === null || !Number.isFinite(x)) return "—";
+  if (x === 0) return "0";
+
+  const absx = Math.abs(x);
+
+  // If the number is "normal" (between 1e-3 and 1e4), just return fixed sig figs
+  if (absx >= 1e-3 && absx < 1e4) {
+    return Number(x.toPrecision(sig)).toString();
+  }
+
+  // Otherwise, use scientific notation
+  const exp = Math.floor(Math.log10(absx));
+  const mant = x / Math.pow(10, exp);
+  const mantRounded = Number(mant.toPrecision(sig));
+
+  return `${mantRounded} × 10^${exp}`;
+}
 
 /* =============================
    MAIN COMPONENT
@@ -172,47 +204,45 @@ export function StoichiometryTool() {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
       {/* Header */}
-      <div className="bg-rose-600 text-white px-6 py-4 rounded-t-2xl">
+      <div className="bg-emerald-600 text-white px-6 py-4 rounded-t-2xl">
         <h2 className="text-xl font-bold">Stoichiometry</h2>
         <p className="text-base opacity-90">Mass ↔ Moles ↔ Particles</p>
       </div>
 
-      <div className="p-6">
-        <p className="text-base text-gray-600">
-          Enter a chemical formula, choose the known quantity, and we’ll calculate the others.
-        </p>
-
+      <div className="p-6 space-y-6">
         {/* Formula input */}
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3">
           <label className="text-base md:col-span-2">
             <span className="block text-gray-700 mb-1">Formula</span>
             <input
               value={formula}
               onChange={(e) => setFormula(e.target.value)}
-              placeholder="e.g., NaCl, C6H12O6, Ba3(PO4)2, CuSO4·5H2O"
+              placeholder="e.g., NaCl, C6H12O6, Ba3(PO4)2"
               spellCheck={false}
-              className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-base shadow-sm focus:border-indigo-600 focus:ring focus:ring-indigo-200"
+              className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-base shadow-sm focus:border-emerald-600 focus:ring focus:ring-emerald-200"
             />
           </label>
-          <div className="rounded-xl p-4 text-white bg-indigo-600 shadow">
-            <div className="text-sm opacity-80">Molar mass</div>
-            <div className="text-lg font-bold">{Number.isFinite(mm) ? `${fmt(mm, 4)} g/mol` : "—"}</div>
+          <div className="rounded-xl p-4 bg-emerald-50 text-emerald-800 border border-emerald-200">
+            <div className="text-sm">Molar mass</div>
+            <div className="text-lg font-bold">
+              {Number.isFinite(mm) ? `${fmtSciPlain(mm, 4)} g/mol` : "—"}
+            </div>
           </div>
         </div>
 
         {/* Known picker */}
-        <div className="mt-6">
+        <div>
           <div className="text-sm text-gray-500 mb-2">I have…</div>
           <div className="flex flex-wrap gap-2">
             {(["mass", "moles", "particles"] as KnownKey[]).map((k) => (
               <button
                 key={k}
-                onClick={() => { setKnown(k); resetInputs(); }}
+                onClick={() => { setKnown(k); setMass(""); setMoles(""); setParticles(""); }}
                 type="button"
                 className={[
                   "rounded-lg px-4 py-2 text-base font-medium transition ring-1",
                   known === k
-                    ? "bg-indigo-600 text-white ring-indigo-600"
+                    ? "bg-emerald-600 text-white ring-emerald-600"
                     : "bg-white text-gray-700 ring-gray-200 hover:bg-gray-50",
                 ].join(" ")}
               >
@@ -223,7 +253,7 @@ export function StoichiometryTool() {
         </div>
 
         {/* Inputs */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-3">
           {/* Mass */}
           <label className="text-base">
             <span className="block text-gray-700 mb-1">Mass (g)</span>
@@ -232,8 +262,8 @@ export function StoichiometryTool() {
               disabled={known !== "mass"}
               value={mass}
               onChange={(e) => setMass(e.target.value)}
-              className={`w-full rounded-xl border px-3 py-3 text-base shadow-sm focus:border-indigo-600 focus:ring focus:ring-indigo-200
-                ${known === "mass" ? "bg-white border-gray-300" : "bg-gray-50 border-gray-200 text-gray-500"}`}
+              className={`w-full rounded-xl border px-3 py-3 text-base shadow-sm focus:border-emerald-600 focus:ring focus:ring-emerald-200
+                ${known === "mass" ? "bg-white" : "bg-gray-50 text-gray-500"}`}
             />
           </label>
 
@@ -245,8 +275,8 @@ export function StoichiometryTool() {
               disabled={known !== "moles"}
               value={moles}
               onChange={(e) => setMoles(e.target.value)}
-              className={`w-full rounded-xl border px-3 py-3 text-base shadow-sm focus:border-indigo-600 focus:ring focus:ring-indigo-200
-                ${known === "moles" ? "bg-white border-gray-300" : "bg-gray-50 border-gray-200 text-gray-500"}`}
+              className={`w-full rounded-xl border px-3 py-3 text-base shadow-sm focus:border-emerald-600 focus:ring focus:ring-emerald-200
+                ${known === "moles" ? "bg-white" : "bg-gray-50 text-gray-500"}`}
             />
           </label>
 
@@ -259,8 +289,8 @@ export function StoichiometryTool() {
                 disabled={known !== "particles"}
                 value={particles}
                 onChange={(e) => setParticles(e.target.value)}
-                className={`w-full rounded-xl border px-3 py-3 text-base shadow-sm focus:border-indigo-600 focus:ring focus:ring-indigo-200
-                  ${known === "particles" ? "bg-white border-gray-300" : "bg-gray-50 border-gray-200 text-gray-500"}`}
+                className={`w-full rounded-xl border px-3 py-3 text-base shadow-sm focus:border-emerald-600 focus:ring focus:ring-emerald-200
+                  ${known === "particles" ? "bg-white" : "bg-gray-50 text-gray-500"}`}
               />
               <select
                 disabled={known !== "particles"}
@@ -276,79 +306,113 @@ export function StoichiometryTool() {
         </div>
 
         {/* Results */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-xl p-4 text-white bg-green-600 shadow">
-            <div className="text-sm opacity-80">Mass (g)</div>
-            <div className="text-lg font-bold">{fmt(derived.m)}</div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl bg-emerald-50 p-4 text-lg">
+            <div className="mb-1 text-gray-600">Mass</div>
+            <div className="font-semibold text-emerald-800">{fmtSciPlain(derived.m)} g</div>
           </div>
-          <div className="rounded-xl p-4 text-white bg-blue-600 shadow">
-            <div className="text-sm opacity-80">Moles (mol)</div>
-            <div className="text-lg font-bold">{fmt(derived.n)}</div>
+          <div className="rounded-xl bg-emerald-50 p-4 text-lg">
+            <div className="mb-1 text-gray-600">Moles</div>
+            <div className="font-semibold text-emerald-800">{fmtSciPlain(derived.n)} mol</div>
           </div>
-          <div className="rounded-xl p-4 text-white bg-purple-600 shadow">
-            <div className="text-sm opacity-80">Particles</div>
-            <div className="text-lg font-bold">
+          <div className="rounded-xl bg-emerald-50 p-4 text-lg">
+            <div className="mb-1 text-gray-600">Particles</div>
+            <div className="font-semibold text-emerald-800">
               {derived.N === null ? "—" : partUnit === "e23"
-                ? <b>{fmt(derived.N / 1e23)} × 10^23</b>
-                : <b>{fmt(derived.N)}</b>}
+                ? `${fmtSciPlain(derived.N / 1e23)} × 10^23`
+                : fmtSciPlain(derived.N)}
             </div>
+
           </div>
         </div>
 
         {/* Error */}
         {error && (
-          <div className="mt-6 rounded-xl bg-red-600 text-white p-4 text-base shadow">
+          <div className="mt-4 rounded-xl bg-red-50 border border-red-200 text-red-800 p-4 text-base">
             {error}
           </div>
         )}
 
-        {/* How it was calculated */}
+        {/* Formula Reference */}
+        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800">
+          <h3 className="font-bold text-base mb-2">Formulas</h3>
+          <ul className="space-y-2">
+            <li><BlockMath math="M = \sum n_i \times \text{AW}_i" /></li>
+            <li><BlockMath math="n = \tfrac{m}{M}" /></li>
+            <li><BlockMath math="m = n \times M" /></li>
+            <li><BlockMath math="N = n \times N_a" /></li>
+            <li><BlockMath math="n = \tfrac{N}{N_a}" /></li>
+          </ul>
+        </div>
+
+        {/* Show Work */}
         {derived.n !== null && (
-          <details className="mt-6 text-base text-gray-700">
-            <summary className="cursor-pointer select-none font-semibold">
-              Show Calculation Steps
+          <details className="mt-6 rounded-xl border border-gray-200 bg-white p-4 text-base">
+            <summary className="cursor-pointer font-semibold text-gray-800 text-lg">
+              Show Work (with your inputs)
             </summary>
             <div className="mt-4 space-y-5">
-              <div className="rounded-lg bg-gray-100 p-3">
-                <p className="font-medium">Step 1 — Molar Mass</p>
-                <BlockMath math={`M = ${fmt(mm)}\\ \\text{g/mol}`} />
+              {/* Step 1 – Molar Mass */}
+              <div className="pl-2 border-l-4 border-emerald-400">
+                <div className="font-medium text-gray-800">Step 1 — Molar Mass</div>
+                <BlockMath math={`M = ${fmtSci(mm)}\\ \\text{g/mol}`} />
               </div>
 
               {known === "mass" && (
                 <>
-                  <div className="rounded-lg bg-gray-100 p-3">
-                    <p className="font-medium">Step 2 — Convert Mass to Moles</p>
-                    <BlockMath math={`n = \\frac{m}{M} = \\frac{${mass}}{${fmt(mm)}} \\;\\Rightarrow\\; \\mathbf{${fmt(derived.n)}\\ \\text{mol}}`} />
+                  <div className="pl-2 border-l-4 border-emerald-400">
+                    <div className="font-medium text-gray-800">Step 2 — Mass → Moles</div>
+                    <BlockMath math={`n = \\frac{${mass}}{${fmtSci(mm)}} = ${fmtSci(derived.n)}\\ \\text{mol}`} />
+                    <div className="mt-2 inline-block rounded bg-emerald-100 text-emerald-800 px-2 py-1 font-semibold">
+                      n = {fmtSciPlain(derived.n)} mol
+                    </div>
                   </div>
-                  <div className="rounded-lg bg-green-100 p-3">
-                    <p className="font-medium">Step 3 — Convert Moles to Particles</p>
-                    <BlockMath math={`N = n \\times N_a = ${fmt(derived.n)} \\times ${NA.toExponential(4)} \\;\\Rightarrow\\; \\mathbf{${fmt(derived.N)}}`} />
+                  <div className="pl-2 border-l-4 border-emerald-600">
+                    <div className="font-medium text-gray-800">Step 3 — Moles → Particles</div>
+                    <BlockMath 
+                      math={`N = n \\times N_a = ${fmtSci(derived.n)} \\times ${fmtSci(NA)} = ${fmtSci(derived.N)}`} 
+                    />
+                    <div className="mt-2 inline-block rounded bg-emerald-100 text-emerald-800 px-2 py-1 font-semibold">
+                      <div>N = {fmtSciPlain(derived.N)}</div>
+                    </div>
                   </div>
                 </>
               )}
 
               {known === "moles" && (
                 <>
-                  <div className="rounded-lg bg-gray-100 p-3">
-                    <p className="font-medium">Step 2 — Convert Moles to Mass</p>
-                    <BlockMath math={`m = n \\times M = ${moles} \\times ${fmt(mm)} \\;\\Rightarrow\\; \\mathbf{${fmt(derived.m)}\\ \\text{g}}`} />
+                  <div className="pl-2 border-l-4 border-emerald-400">
+                    <div className="font-medium text-gray-800">Step 2 — Moles → Mass</div>
+                    <BlockMath math={`m = ${moles} \\times ${fmtSci(mm)} = ${fmtSci(derived.m)}\\ \\text{g}`} />
+                    <div className="mt-2 inline-block rounded bg-emerald-100 text-emerald-800 px-2 py-1 font-semibold">
+                      m = {fmtSci(derived.m)} g
+                    </div>
                   </div>
-                  <div className="rounded-lg bg-green-100 p-3">
-                    <p className="font-medium">Step 3 — Convert Moles to Particles</p>
-                    <BlockMath math={`N = n \\times N_a = ${moles} \\times ${NA.toExponential(4)} \\;\\Rightarrow\\; \\mathbf{${fmt(derived.N)}}`} />
+                  <div className="pl-2 border-l-4 border-emerald-600">
+                    <div className="font-medium text-gray-800">Step 3 — Moles → Particles</div>
+                    <BlockMath math={`N = ${moles} \\times ${fmtSci(NA)} = ${fmtSci(derived.N)}`} />
+                    <div className="mt-2 inline-block rounded bg-emerald-100 text-emerald-800 px-2 py-1 font-semibold">
+                      N = {fmtSciPlain(derived.N)}
+                    </div>
                   </div>
                 </>
               )}
 
               {known === "particles" && (
                 <>
-                  <div className="rounded-lg bg-gray-100 p-3">
-                    <p className="font-medium">Step 2 — Convert Particles to Moles</p>
-                    <BlockMath math={`n = \\frac{N}{N_a} = \\frac{${fmt(derived.N)}}{${NA.toExponential(4)}} \\;\\Rightarrow\\; \\mathbf{${fmt(derived.n)}\\ \\text{mol}}`} />
+                  <div className="pl-2 border-l-4 border-emerald-400">
+                    <div className="font-medium text-gray-800">Step 2 — Particles → Moles</div>
+                    <BlockMath math={`n = \\frac{${fmtSci(derived.N)}}{${fmtSci(NA)}} = ${fmtSci(derived.n)}\\ \\text{mol}`} />
+                    <div className="mt-2 inline-block rounded bg-emerald-100 text-emerald-800 px-2 py-1 font-semibold">
+                      n = {fmtSciPlain(derived.n)} mol
+                    </div>
                   </div>
-                  <div className="rounded-lg bg-green-100 p-3">
-                    <p className="font-medium">Step 3 — Convert Moles to Mass</p>
-                    <BlockMath math={`m = n \\times M = ${fmt(derived.n)} \\times ${fmt(mm)} \\;\\Rightarrow\\; \\mathbf{${fmt(derived.m)}\\ \\text{g}}`} />
+                  <div className="pl-2 border-l-4 border-emerald-600">
+                    <div className="font-medium text-gray-800">Step 3 — Moles → Mass</div>
+                    <BlockMath math={`m = ${fmtSci(derived.n)} \\times ${fmtSci(mm)} = ${fmtSci(derived.m)}\\ \\text{g}`} />
+                    <div className="mt-2 inline-block rounded bg-emerald-100 text-emerald-800 px-2 py-1 font-semibold">
+                      m = {fmtSciPlain(derived.m)} g
+                    </div>
                   </div>
                 </>
               )}
@@ -358,12 +422,12 @@ export function StoichiometryTool() {
 
         {/* Atom breakdown */}
         {counts && (
-          <details className="mt-6 text-sm text-gray-600">
-            <summary className="cursor-pointer select-none font-medium">Atom counts</summary>
-            <ul className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4">
+          <details className="mt-4 text-sm text-gray-700">
+            <summary className="cursor-pointer font-medium">Atom counts</summary>
+            <ul className="mt-2 flex flex-wrap gap-2">
               {Object.entries(counts).map(([sym, n]) => (
-                <li key={sym} className="rounded-lg px-2 py-1 bg-indigo-600 text-white text-base">
-                  <span className="font-medium">{sym}</span> × <b>{n}</b>
+                <li key={sym} className="rounded bg-emerald-100 text-emerald-800 px-2 py-1">
+                  {sym} × {n}
                 </li>
               ))}
             </ul>

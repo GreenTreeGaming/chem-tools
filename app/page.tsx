@@ -9,7 +9,11 @@ import { IsotopeFinder } from "@/components/tools/IsotopeFinder";
 import { StoichiometryTool } from "@/components/tools/StoichiometryTool";
 import { LimitingReagentTool } from "@/components/tools/LimitingReagentTool";
 import { YieldCalculator } from "@/components/tools/YieldCalculator";
-import { SolutionConcentrationTool } from "@/components/tools/SolutionConcentrationTool"; // 👈 new import
+import { SolutionConcentrationTool } from "@/components/tools/SolutionConcentrationTool";
+import { GasLawSolver } from "@/components/tools/GasLawSolver"; // 👈 new import
+import { GasLawVariations } from "@/components/tools/GasLawVariations"; // 👈 new import
+import { BondEnthalpies } from "@/components/tools/BondEnthalpies";
+import { SolubilityRules } from "@/components/tools/SolubilityRules";
 
 /* ---------------- Types ---------------- */
 
@@ -22,7 +26,12 @@ type TabKey =
   | "isotopes"
   | "stoich"
   | "limiting"
-  | "yield";
+  | "yield"
+  | "gaslaw"
+  | "gasvariations" // 👈 new
+  | "bondenthalpies"
+  | "solubility"; 
+
 
 /* ---------------- Tool Shelf (category launcher) ---------------- */
 
@@ -43,17 +52,26 @@ const TOOL_GROUPS: ToolGroup[] = [
     title: "🧪 Solutions & Concentrations",
     items: [
       { key: "molarity", label: "Molarity", desc: "M and dilution" },
-      { key: "solutions", label: "Solution Concentrations", desc: "Molality, %, ppm/ppb" }, // 👈 new
+      { key: "solutions", label: "Solution Concentrations", desc: "Molality, %, ppm/ppb" },
       { key: "molar-mass", label: "Molar Mass", desc: "Formula weights" },
     ],
   },
+  {
+  title: "📐 Gases",
+  items: [
+    { key: "gaslaw", label: "Ideal Gas Law", desc: "PV = nRT solver" },
+    { key: "gasvariations", label: "Gas Law Variations", desc: "Boyle • Charles • Avogadro • Dalton" }, // 👈 new
+  ],
+},
   {
     title: "🧾 Data & References",
     items: [
       { key: "table", label: "Periodic Table", desc: "Search & filter" },
       { key: "isotopes", label: "Isotopes", desc: "Masses & abundance" },
+      { key: "bondenthalpies", label: "Bond Enthalpies", desc: "Bond dissociation energies" },
+      { key: "solubility", label: "Solubility Rules", desc: "Aqueous solubility guide" }, // 👈 NEW
     ],
-  },
+  }
 ];
 
 function ToolShelf({
@@ -158,86 +176,58 @@ export default function Home() {
 
       {/* Panels */}
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pb-10">
-        <section
-          role="tabpanel"
-          id="panel-table"
-          aria-labelledby="tab-table"
-          hidden={active !== "table"}
-        >
+        <section hidden={active !== "table"}>
           <PeriodicTable />
         </section>
 
-        <section
-          role="tabpanel"
-          id="panel-molar-mass"
-          aria-labelledby="tab-molar-mass"
-          hidden={active !== "molar-mass"}
-        >
+        <section hidden={active !== "molar-mass"}>
           <MolarMassTool />
         </section>
 
-        <section
-          role="tabpanel"
-          id="panel-balancer"
-          aria-labelledby="tab-balancer"
-          hidden={active !== "balancer"}
-        >
+        <section hidden={active !== "balancer"}>
           <EquationBalancer />
         </section>
 
-        <section
-          role="tabpanel"
-          id="panel-molarity"
-          aria-labelledby="tab-molarity"
-          hidden={active !== "molarity"}
-        >
+        <section hidden={active !== "molarity"}>
           <MolarityTool />
         </section>
 
-        <section
-          role="tabpanel"
-          id="panel-solutions"
-          aria-labelledby="tab-solutions"
-          hidden={active !== "solutions"}
-        >
-          <SolutionConcentrationTool /> {/* 👈 new panel */}
+        <section hidden={active !== "solutions"}>
+          <SolutionConcentrationTool />
         </section>
 
-        <section
-          role="tabpanel"
-          id="panel-isotopes"
-          aria-labelledby="tab-isotopes"
-          hidden={active !== "isotopes"}
-        >
+        <section hidden={active !== "isotopes"}>
           <IsotopeFinder />
         </section>
 
-        <section
-          role="tabpanel"
-          id="panel-stoich"
-          aria-labelledby="tab-stoich"
-          hidden={active !== "stoich"}
-        >
+        <section hidden={active !== "stoich"}>
           <StoichiometryTool />
         </section>
 
-        <section
-          role="tabpanel"
-          id="panel-limiting"
-          aria-labelledby="tab-limiting"
-          hidden={active !== "limiting"}
-        >
+        <section hidden={active !== "limiting"}>
           <LimitingReagentTool />
         </section>
 
-        <section
-          role="tabpanel"
-          id="panel-yield"
-          aria-labelledby="tab-yield"
-          hidden={active !== "yield"}
-        >
+        <section hidden={active !== "yield"}>
           <YieldCalculator />
         </section>
+
+        <section hidden={active !== "gaslaw"}>
+          <GasLawSolver />
+        </section>
+
+        <section hidden={active !== "gasvariations"}>
+          <GasLawVariations /> {/* 👈 new panel */}
+        </section>
+
+        <section hidden={active !== "bondenthalpies"}>
+          <BondEnthalpies /> {/* 👈 new component */}
+        </section>
+
+        <section hidden={active !== "solubility"}>
+          <SolubilityRules /> {/* 👈 new panel */}
+        </section>
+
       </main>
     </div>
   );
