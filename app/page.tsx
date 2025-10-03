@@ -15,6 +15,9 @@ import { GasLawVariations } from "@/components/tools/GasLawVariations"; // 👈 
 import { BondEnthalpies } from "@/components/tools/BondEnthalpies";
 import { SolubilityRules } from "@/components/tools/SolubilityRules";
 import { ReactionStoichiometryTool } from "@/components/tools/ReactionStoichiometryTool";
+import { StrongAcidsBases } from "@/components/tools/StrongAcidsBases";
+import { PolyatomicIonsChart } from "@/components/tools/PolyatomicIonsChart";
+import { CommonLabConstants } from "@/components/tools/CommonLabConstants";
 
 /* ---------------- Types ---------------- */
 
@@ -32,8 +35,10 @@ type TabKey =
   | "gaslaw"
   | "gasvariations" // 👈 new
   | "bondenthalpies"
-  | "solubility"; 
-
+  | "solubility"
+  | "acidsbases"
+  | "polyatomicions"
+  | "constants";
 
 /* ---------------- Tool Shelf (category launcher) ---------------- */
 
@@ -72,7 +77,10 @@ const TOOL_GROUPS: ToolGroup[] = [
       { key: "table", label: "Periodic Table", desc: "Search & filter" },
       { key: "isotopes", label: "Isotopes", desc: "Masses & abundance" },
       { key: "bondenthalpies", label: "Bond Enthalpies", desc: "Bond dissociation energies" },
-      { key: "solubility", label: "Solubility Rules", desc: "Aqueous solubility guide" }, // 👈 NEW
+      { key: "solubility", label: "Solubility Rules", desc: "Aqueous solubility guide" },
+      { key: "acidsbases", label: "Strong Acids & Bases", desc: "Reference list" },
+      { key: "polyatomicions", label: "Polyatomic Ions", desc: "Common ions list" },
+      { key: "constants", label: "Lab Constants", desc: "Physical & chemical constants" } // 👈 NEW
     ],
   }
 ];
@@ -235,6 +243,17 @@ export default function Home() {
           <SolubilityRules /> {/* 👈 new panel */}
         </section>
 
+        <section hidden={active !== "acidsbases"}>
+          <StrongAcidsBases />
+        </section>
+
+        <section hidden={active !== "polyatomicions"}>
+          <PolyatomicIonsChart />
+        </section>
+
+        <section hidden={active !== "constants"}>
+          <CommonLabConstants /> {/* 👈 NEW */}
+        </section>
       </main>
     </div>
   );

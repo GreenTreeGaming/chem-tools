@@ -1,0 +1,214 @@
+{
+  "labConstants": [
+    {
+      "name": "Avogadro constant",
+      "symbol": "N_A",
+      "value": 6.02214076e23,
+      "unit": "mol^{-1}",
+      "category": "chemistry"
+    },
+    {
+      "name": "Gas constant",
+      "symbol": "R",
+      "value": 8.314462618,
+      "unit": "J mol^{-1} K^{-1}",
+      "category": "thermodynamics"
+    },
+    {
+      "name": "Gas constant (in L·atm)",
+      "symbol": "R",
+      "value": 0.082057,
+      "unit": "L atm mol^{-1} K^{-1}",
+      "category": "chemistry"
+    },
+    {
+      "name": "Faraday constant",
+      "symbol": "F",
+      "value": 96485.33212,
+      "unit": "C mol^{-1}",
+      "category": "electrochemistry"
+    },
+    {
+      "name": "Elementary charge",
+      "symbol": "e",
+      "value": 1.602176634e-19,
+      "unit": "C",
+      "category": "electrochemistry"
+    },
+    {
+      "name": "Boltzmann constant",
+      "symbol": "k_B",
+      "value": 1.380649e-23,
+      "unit": "J K^{-1}",
+      "category": "thermodynamics"
+    },
+    {
+      "name": "Planck constant",
+      "symbol": "h",
+      "value": 6.62607015e-34,
+      "unit": "J s",
+      "category": "quantum"
+    },
+    {
+      "name": "Reduced Planck constant",
+      "symbol": "\\hbar",
+      "value": 1.054571817e-34,
+      "unit": "J s",
+      "category": "quantum"
+    },
+    {
+      "name": "Speed of light",
+      "symbol": "c",
+      "value": 2.99792458e8,
+      "unit": "m s^{-1}",
+      "category": "physical"
+    },
+    {
+      "name": "Stefan–Boltzmann constant",
+      "symbol": "\\sigma",
+      "value": 5.670374419e-8,
+      "unit": "W m^{-2} K^{-4}",
+      "category": "thermodynamics"
+    },
+    {
+      "name": "Gravitational constant",
+      "symbol": "G",
+      "value": 6.67430e-11,
+      "unit": "m^3 kg^{-1} s^{-2}",
+      "category": "physics"
+    },
+    {
+      "name": "Standard gravity",
+      "symbol": "g",
+      "value": 9.80665,
+      "unit": "m s^{-2}",
+      "category": "physics"
+    },
+    {
+      "name": "Electron mass",
+      "symbol": "m_e",
+      "value": 9.10938356e-31,
+      "unit": "kg",
+      "category": "particle"
+    },
+    {
+      "name": "Proton mass",
+      "symbol": "m_p",
+      "value": 1.67262192369e-27,
+      "unit": "kg",
+      "category": "particle"
+    },
+    {
+      "name": "Neutron mass",
+      "symbol": "m_n",
+      "value": 1.67492749804e-27,
+      "unit": "kg",
+      "category": "particle"
+    },
+    {
+      "name": "Atomic mass unit",
+      "symbol": "u",
+      "value": 1.66053906660e-27,
+      "unit": "kg",
+      "category": "chemistry"
+    },
+    {
+      "name": "Vacuum permittivity",
+      "symbol": "\\varepsilon_0",
+      "value": 8.8541878128e-12,
+      "unit": "F m^{-1}",
+      "category": "physics"
+    },
+    {
+      "name": "Vacuum permeability",
+      "symbol": "\\mu_0",
+      "value": 1.25663706212e-6,
+      "unit": "N A^{-2}",
+      "category": "physics"
+    },
+    {
+      "name": "Coulomb constant",
+      "symbol": "k_e",
+      "value": 8.9875517923e9,
+      "unit": "N m^2 C^{-2}",
+      "category": "electrostatics"
+    },
+    {
+      "name": "Standard atmosphere",
+      "symbol": "atm",
+      "value": 101325,
+      "unit": "Pa",
+      "category": "chemistry"
+    },
+    {
+      "name": "Calorie (thermochemical)",
+      "symbol": "cal",
+      "value": 4.184,
+      "unit": "J",
+      "category": "chemistry"
+    },
+    {
+      "name": "Molar volume of ideal gas (STP)",
+      "symbol": "V_m",
+      "value": 22.414,
+      "unit": "L mol^{-1}",
+      "category": "chemistry"
+    },
+    {
+      "name": "Rydberg constant",
+      "symbol": "R_\\infty",
+      "value": 1.0973731568160e7,
+      "unit": "m^{-1}",
+      "category": "quantum"
+    },
+    {
+      "name": "Magnetic constant (Bohr magneton)",
+      "symbol": "\\mu_B",
+      "value": 9.2740100783e-24,
+      "unit": "J T^{-1}",
+      "category": "quantum"
+    },
+    {
+      "name": "Nuclear magneton",
+      "symbol": "\\mu_N",
+      "value": 5.0507837461e-27,
+      "unit": "J T^{-1}",
+      "category": "quantum"
+    },
+    {
+      "name": "Fine-structure constant",
+      "symbol": "\\alpha",
+      "value": 7.2973525693e-3,
+      "unit": "dimensionless",
+      "category": "quantum"
+    },
+    {
+      "name": "Loschmidt constant",
+      "symbol": "N_L",
+      "value": 2.6867811e25,
+      "unit": "m^{-3}",
+      "category": "chemistry"
+    },
+    {
+      "name": "First ionization energy of hydrogen",
+      "symbol": "E_H",
+      "value": 13.598,
+      "unit": "eV",
+      "category": "chemistry"
+    },
+    {
+      "name": "Wien displacement constant",
+      "symbol": "b",
+      "value": 2.897771955e-3,
+      "unit": "m K",
+      "category": "thermodynamics"
+    },
+    {
+      "name": "Conductance quantum",
+      "symbol": "G_0",
+      "value": 7.748091729e-5,
+      "unit": "S",
+      "category": "quantum"
+    }
+  ]
+}

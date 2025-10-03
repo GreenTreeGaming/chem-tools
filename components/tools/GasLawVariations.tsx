@@ -46,24 +46,20 @@ export function GasLawVariations() {
           steps.push({
             label: "Step 1 — Apply Boyle’s Law",
             math: String.raw`P_1 V_1 = P_2 V_2`,
-            color: "bg-gray-100",
           });
           steps.push({
             label: "Final Step — Solve for P₂",
             math: String.raw`P_2 = \frac{P_1 V_1}{V_2} = \frac{${_P1}\times ${_V1}}{${_V2}} \;\Rightarrow\; \mathbf{${fmt(val)}}`,
-            color: "bg-green-50 border-green-200",
           });
         } else if (known === "V2") {
           val = (_P1 * _V1) / _P2;
           steps.push({
             label: "Step 1 — Apply Boyle’s Law",
             math: String.raw`P_1 V_1 = P_2 V_2`,
-            color: "bg-gray-100",
           });
           steps.push({
             label: "Final Step — Solve for V₂",
             math: String.raw`V_2 = \frac{P_1 V_1}{P_2} = \frac{${_P1}\times ${_V1}}{${_P2}} \;\Rightarrow\; \mathbf{${fmt(val)}}`,
-            color: "bg-green-50 border-green-200",
           });
         }
       }
@@ -79,24 +75,20 @@ export function GasLawVariations() {
           steps.push({
             label: "Step 1 — Apply Charles’s Law",
             math: String.raw`\frac{V_1}{T_1} = \frac{V_2}{T_2}`,
-            color: "bg-gray-100",
           });
           steps.push({
             label: "Final Step — Solve for V₂",
             math: String.raw`V_2 = \frac{V_1 T_2}{T_1} = \frac{${_V1}\times ${_T2}}{${_T1}} \;\Rightarrow\; \mathbf{${fmt(val)}}`,
-            color: "bg-green-50 border-green-200",
           });
         } else if (known === "T2") {
           val = (_V2 * _T1) / _V1;
           steps.push({
             label: "Step 1 — Apply Charles’s Law",
             math: String.raw`\frac{V_1}{T_1} = \frac{V_2}{T_2}`,
-            color: "bg-gray-100",
           });
           steps.push({
             label: "Final Step — Solve for T₂",
             math: String.raw`T_2 = \frac{V_2 T_1}{V_1} = \frac{${_V2}\times ${_T1}}{${_V1}} \;\Rightarrow\; \mathbf{${fmt(val)}}`,
-            color: "bg-green-50 border-green-200",
           });
         }
       }
@@ -112,40 +104,37 @@ export function GasLawVariations() {
           steps.push({
             label: "Step 1 — Apply Avogadro’s Law",
             math: String.raw`\frac{V_1}{n_1} = \frac{V_2}{n_2}`,
-            color: "bg-gray-100",
           });
           steps.push({
             label: "Final Step — Solve for V₂",
             math: String.raw`V_2 = \frac{V_1 n_2}{n_1} = \frac{${_V1}\times ${_n2}}{${_n1}} \;\Rightarrow\; \mathbf{${fmt(val)}}`,
-            color: "bg-green-50 border-green-200",
           });
         } else if (known === "n2") {
           val = (_n1 * _V2) / _V1;
           steps.push({
             label: "Step 1 — Apply Avogadro’s Law",
             math: String.raw`\frac{V_1}{n_1} = \frac{V_2}{n_2}`,
-            color: "bg-gray-100",
           });
           steps.push({
             label: "Final Step — Solve for n₂",
             math: String.raw`n_2 = \frac{n_1 V_2}{V_1} = \frac{${_n1}\times ${_V2}}{${_V1}} \;\Rightarrow\; \mathbf{${fmt(val)}}`,
-            color: "bg-green-50 border-green-200",
           });
         }
       }
 
       if (law === "dalton") {
-        const numbers = partials.split(",").map((s) => parseFloat(s.trim())).filter((x) => !isNaN(x));
+        const numbers = partials
+          .split(",")
+          .map((s) => parseFloat(s.trim()))
+          .filter((x) => !isNaN(x));
         val = numbers.reduce((a, b) => a + b, 0);
         steps.push({
           label: "Step 1 — List partial pressures",
           math: String.raw`${numbers.join(" + ")}`,
-          color: "bg-gray-100",
         });
         steps.push({
           label: "Final Step — Total Pressure",
           math: String.raw`P_\text{total} = ${numbers.join(" + ")} = \mathbf{${fmt(val)}}`,
-          color: "bg-green-50 border-green-200",
         });
       }
     } catch {
@@ -176,7 +165,13 @@ export function GasLawVariations() {
             ] as [LawKey, string][]).map(([k, label]) => (
               <button
                 key={k}
-                onClick={() => setLaw(k)}
+                onClick={() => {
+                  setLaw(k);
+                  if (k === "boyle") setKnown("P2");
+                  if (k === "charles") setKnown("V2");
+                  if (k === "avogadro") setKnown("V2");
+                  if (k === "dalton") setKnown("P2"); // doesn't matter
+                }}
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
                   law === k ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                 }`}
@@ -187,133 +182,77 @@ export function GasLawVariations() {
           </div>
         </div>
 
-        {/* Inputs (Boyle example) */}
+        {/* Known selector for each law */}
+        {law === "boyle" && (
+          <div>
+            <label className="text-sm text-gray-600 mr-2">Solve for:</label>
+            <select
+              value={known}
+              onChange={(e) => setKnown(e.target.value as VarKey)}
+              className="rounded-lg border border-gray-300 px-3 py-2"
+            >
+              <option value="P2">P₂</option>
+              <option value="V2">V₂</option>
+            </select>
+          </div>
+        )}
+        {law === "charles" && (
+          <div>
+            <label className="text-sm text-gray-600 mr-2">Solve for:</label>
+            <select
+              value={known}
+              onChange={(e) => setKnown(e.target.value as VarKey)}
+              className="rounded-lg border border-gray-300 px-3 py-2"
+            >
+              <option value="V2">V₂</option>
+              <option value="T2">T₂</option>
+            </select>
+          </div>
+        )}
+        {law === "avogadro" && (
+          <div>
+            <label className="text-sm text-gray-600 mr-2">Solve for:</label>
+            <select
+              value={known}
+              onChange={(e) => setKnown(e.target.value as VarKey)}
+              className="rounded-lg border border-gray-300 px-3 py-2"
+            >
+              <option value="V2">V₂</option>
+              <option value="n2">n₂</option>
+            </select>
+          </div>
+        )}
+
+        {/* Inputs */}
         {law === "boyle" && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-base">
-              P₁
-              <input
-                value={P1}
-                onChange={(e) => setP1(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </label>
-            <label className="text-base">
-              V₁
-              <input
-                value={V1}
-                onChange={(e) => setV1(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </label>
-            <label className="text-base">
-              P₂
-              <input
-                value={P2}
-                onChange={(e) => setP2(e.target.value)}
-                disabled={known === "P2"}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </label>
-            <label className="text-base">
-              V₂
-              <input
-                value={V2}
-                onChange={(e) => setV2(e.target.value)}
-                disabled={known === "V2"}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </label>
+            <label>P₁<input value={P1} onChange={(e) => setP1(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2"/></label>
+            <label>V₁<input value={V1} onChange={(e) => setV1(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2"/></label>
+            <label>P₂<input value={P2} onChange={(e) => setP2(e.target.value)} disabled={known === "P2"} className="mt-1 w-full rounded-lg border px-3 py-2"/></label>
+            <label>V₂<input value={V2} onChange={(e) => setV2(e.target.value)} disabled={known === "V2"} className="mt-1 w-full rounded-lg border px-3 py-2"/></label>
           </div>
         )}
 
         {law === "charles" && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-base">
-              V₁
-              <input
-                value={V1}
-                onChange={(e) => setV1(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </label>
-            <label className="text-base">
-              T₁
-              <input
-                value={T1}
-                onChange={(e) => setT1(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </label>
-            <label className="text-base">
-              V₂
-              <input
-                value={V2}
-                onChange={(e) => setV2(e.target.value)}
-                disabled={known === "V2"}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </label>
-            <label className="text-base">
-              T₂
-              <input
-                value={T2}
-                onChange={(e) => setT2(e.target.value)}
-                disabled={known === "T2"}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </label>
+            <label>V₁<input value={V1} onChange={(e) => setV1(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2"/></label>
+            <label>T₁<input value={T1} onChange={(e) => setT1(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2"/></label>
+            <label>V₂<input value={V2} onChange={(e) => setV2(e.target.value)} disabled={known === "V2"} className="mt-1 w-full rounded-lg border px-3 py-2"/></label>
+            <label>T₂<input value={T2} onChange={(e) => setT2(e.target.value)} disabled={known === "T2"} className="mt-1 w-full rounded-lg border px-3 py-2"/></label>
           </div>
         )}
 
         {law === "avogadro" && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-base">
-              V₁
-              <input
-                value={V1}
-                onChange={(e) => setV1(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </label>
-            <label className="text-base">
-              n₁
-              <input
-                value={n1}
-                onChange={(e) => setN1(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </label>
-            <label className="text-base">
-              V₂
-              <input
-                value={V2}
-                onChange={(e) => setV2(e.target.value)}
-                disabled={known === "V2"}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </label>
-            <label className="text-base">
-              n₂
-              <input
-                value={n2}
-                onChange={(e) => setN2(e.target.value)}
-                disabled={known === "n2"}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </label>
+            <label>V₁<input value={V1} onChange={(e) => setV1(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2"/></label>
+            <label>n₁<input value={n1} onChange={(e) => setN1(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2"/></label>
+            <label>V₂<input value={V2} onChange={(e) => setV2(e.target.value)} disabled={known === "V2"} className="mt-1 w-full rounded-lg border px-3 py-2"/></label>
+            <label>n₂<input value={n2} onChange={(e) => setN2(e.target.value)} disabled={known === "n2"} className="mt-1 w-full rounded-lg border px-3 py-2"/></label>
           </div>
         )}
 
         {law === "dalton" && (
-          <label className="text-base block">
-            Partial pressures (comma separated):
-            <input
-              value={partials}
-              onChange={(e) => setPartials(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-            />
-          </label>
+          <label>Partial pressures<input value={partials} onChange={(e) => setPartials(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2"/></label>
         )}
 
         {/* Result */}
@@ -329,7 +268,7 @@ export function GasLawVariations() {
         {/* Formula Reference */}
         <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800">
           <h3 className="font-bold text-base mb-2">Formulas</h3>
-          <ul className="space-y-2 leading-relaxed">
+          <ul className="space-y-2">
             <li><BlockMath math="P_1 V_1 = P_2 V_2 \quad \text{(Boyle)}" /></li>
             <li><BlockMath math="\tfrac{V_1}{T_1} = \tfrac{V_2}{T_2} \quad \text{(Charles)}" /></li>
             <li><BlockMath math="\tfrac{V_1}{n_1} = \tfrac{V_2}{n_2} \quad \text{(Avogadro)}" /></li>
@@ -339,27 +278,13 @@ export function GasLawVariations() {
 
         {/* Show Work */}
         {result && result.steps && (
-          <details className="mt-4 rounded-xl border border-gray-200 bg-white p-4 text-base">
-            <summary className="cursor-pointer font-semibold text-gray-800 text-lg">
-              Show Work (with your inputs)
-            </summary>
+          <details className="mt-4 rounded-xl border bg-white p-4 text-base">
+            <summary className="cursor-pointer font-semibold text-gray-800 text-lg">Show Work</summary>
             <div className="mt-3 space-y-4">
               {result.steps.map((s, i) => (
-                <div
-                  key={i}
-                  className={`pl-2 border-l-4 ${
-                    i === result.steps.length - 1 ? "border-indigo-600" : "border-indigo-400"
-                  }`}
-                >
+                <div key={i} className="pl-2 border-l-4 border-indigo-400">
                   <div className="font-medium text-gray-700">{s.label}</div>
                   <BlockMath math={s.math} />
-                  {i === result.steps.length - 1 && result.val !== null && (
-                    <div className="mt-2 rounded-lg bg-indigo-100 text-indigo-800 px-3 py-1 inline-block">
-                      <b>
-                        {known} = {fmt(result.val)}
-                      </b>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>

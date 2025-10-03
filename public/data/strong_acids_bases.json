@@ -1,0 +1,18 @@
+{
+  "acids": [
+    { "name": "Hydrochloric acid", "formula": "HCl" },
+    { "name": "Hydrobromic acid", "formula": "HBr" },
+    { "name": "Hydroiodic acid", "formula": "HI" },
+    { "name": "Nitric acid", "formula": "HNO_3" },
+    { "name": "Sulfuric acid", "formula": "H_2SO_4" },
+    { "name": "Perchloric acid", "formula": "HClO_4" }
+  ],
+  "bases": [
+    { "name": "Lithium hydroxide", "formula": "LiOH" },
+    { "name": "Sodium hydroxide", "formula": "NaOH" },
+    { "name": "Potassium hydroxide", "formula": "KOH" },
+    { "name": "Calcium hydroxide", "formula": "Ca(OH)_2" },
+    { "name": "Strontium hydroxide", "formula": "Sr(OH)_2" },
+    { "name": "Barium hydroxide", "formula": "Ba(OH)_2" }
+  ]
+}
